@@ -6,6 +6,7 @@
     "private": true,
     "type": "module",
     "dependencies": {
+        "@coderline/alphatab": "^1.8.1",
         "@types/node": "^18.15.10",
         "@types/sortablejs": "^1.15.8",
         "@types/ua-parser-js": "^0.7.36",

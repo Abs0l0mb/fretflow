@@ -3,59 +3,80 @@
 import {
     Div,
     Popup,
-    Form,
-    FormField,
+    Button,
     TextInput,
-    PasswordInput,
     Api,
     ClientLocation,
-    Tools,
-    PBKDF2,
-    ImageDiv,
+    PasswordInput,
+    Form,
+    FormField
 } from '@src/classes';
 
 export class LoginPopup extends Popup {
 
-    static readonly HASH_DERIVATION_KEY_BYTE_LENGTH = 32;
-    static readonly HASH_ALGORITHM = 'SHA-256';
-
     private form: Form;
-
-    private email: FormField;
+    private email:    FormField;
     private password: FormField;
 
     constructor() {
 
         super({
-            validText: 'Sign in',
-            title: `Sign in`,
+            title: 'Sign in to Tabify',
             closeZoneHidden: true,
-            notRemovable: true
+            notRemovable: true,
+            validDisabled: false,
         });
 
         this.addClass('login small');
-        
-        this.drawAppData();
-        this.drawForm();
+        this.drawContent();
     }
 
     /*
     **
     **
     */
-    private async drawAppData() : Promise<void> {
+    private drawContent() : void {
 
         const appData = new Div('app-data', this.container);
-
         new Div('logo', appData);
-    }
 
-    /*
-    **
-    **
-    */
-    private async drawForm() : Promise<void> {
+        const body = new Div('login-body', this.content);
+        body.setStyles({
+            'display':        'flex',
+            'flex-direction': 'column',
+            'align-items':    'center',
+            'gap':            '12px',
+            'padding':        '24px 16px',
+            'width':          '100%',
+            'box-sizing':     'border-box',
+        });
 
+        const subtitle = new Div('', body);
+        subtitle.setStyles({ 'color': 'rgba(0,0,0,0.5)', 'font-size': '14px', 'text-align': 'center' });
+        subtitle.write('Convert MIDI files to Guitar Pro tabs');
+
+        // ── Google button ─────────────────────────────────────────────
+        const googleBtn = new Button({ label: 'Sign in with Google' }, body);
+        googleBtn.setStyles({ 'width': '100%', 'max-width': '280px', 'justify-content': 'center' });
+        googleBtn.onNative('click', () => {
+            window.location.href = `${Api.getBaseURL().origin}/api/auth/google`;
+        });
+
+        // ── Separator ─────────────────────────────────────────────────
+        const sep = new Div('', body);
+        sep.setStyles({
+            'display':      'flex',
+            'align-items':  'center',
+            'gap':          '8px',
+            'width':        '100%',
+            'max-width':    '280px',
+            'color':        'rgba(0,0,0,0.3)',
+            'font-size':    '12px',
+        });
+        new Div('', sep).setStyles({ 'flex': '1', 'height': '1px', 'background': 'rgba(0,0,0,0.1)' });
+        new Div('', sep).write('or');
+        new Div('', sep).setStyles({ 'flex': '1', 'height': '1px', 'background': 'rgba(0,0,0,0.1)' });
+        
         this.form = new Form(this.content);
 
         //=====
@@ -93,45 +114,21 @@ export class LoginPopup extends Popup {
 
         this.validButton.load();
 
+        const email    = this.email.input.getValue().trim();
+        const password = this.password.input.getValue();
+
+        if (!email || !password) {
+            this.form.displayError('Please fill in all fields.');
+            this.validButton.unload();
+            return;
+        }
+
         try {
-
-            const prerequisites = await Api.post('/login/prerequisites', {
-                email: this.email.input.getValue()
-            });
-
-            let passwordHash: string;
-
-            try {
-
-                const split = prerequisites.split(':');
-                const iterations = split[0];
-                const saltHex = split[1];
-
-                passwordHash = await PBKDF2.computePBKDF2HexHash(this.password.input.getValue(), saltHex, iterations, LoginPopup.HASH_DERIVATION_KEY_BYTE_LENGTH, LoginPopup.HASH_ALGORITHM);
-            }
-            catch(error) {
-
-                passwordHash = Tools.sha256('~');
-            };
-
-            await Api.post('/login', {
-                email: this.email.input.getValue(),
-                passwordHash: passwordHash
-            });
-
+            await Api.post('/auth/login', { email, password });
             await ClientLocation.get().api.checkAuth();
-            
             this.hide();
-
-        } catch(error: any) {
-
-            if (error === 'access-denied@public-access-only') {
-                await ClientLocation.get().api.checkAuth();
-                this.hide();
-                return;
-            }
-
-            this.form.displayError(error);
+        } catch (error: any) {
+            this.form.displayError('Invalid email or password');
             this.validButton.unload();
         }
     }

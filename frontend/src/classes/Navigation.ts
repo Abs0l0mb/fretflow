@@ -2,7 +2,10 @@
 
 import {
     Div,
+    Block,
     ClientLocation,
+    ContextMenu,
+    Api,
     Menu,
     Tools
 } from '@src/classes';
@@ -11,6 +14,7 @@ export class Navigation extends Div {
 
     private menu: Menu;
     private reduced: boolean = false;
+    private userBadge: Div | null = null;
 
     constructor() {
         
@@ -37,20 +41,10 @@ export class Navigation extends Div {
 
         this.menu = new Menu([
 
-            { label: 'Team', extraClass: 'settings team', submenuOpened: true, submenu: [
-                { label: 'Tasks', path: '/tasks', extraClass: 'tasks' },
-                { label: 'Archived', path: '/archived', extraClass: 'archived' },
-                { label: 'Categories', path: '/categories', extraClass: 'categories' },
-                { label: 'Documents', path: '/documents', extraClass: 'document' },
-                { label: 'Members', path: '/team', extraClass: 'members' },
-                { label: 'Progress report', path: '/progress-report', extraClass: 'progress-report', requiredRight: 'PROGRESS REPORT' }
-            ]},
-            
-            { label: 'Administration', extraClass: 'settings', submenu: [
-                { label: 'Teams', path: '/settings/teams', extraClass: 'teams', requiredRight: 'MANAGE TEAMS' }
+            { label: 'Tools', extraClass: 'settings', submenuOpened: true, submenu: [
+                { label: 'MIDI to tabs', path: '/', extraClass: 'tasks' },
             ]},
 
-            { label: 'Account', path: '/me', extraClass: 'my-account' }
         ], this);
 
         await this.menu.draw();
@@ -70,8 +64,70 @@ export class Navigation extends Div {
     private async onConnected() : Promise<void> {
 
         await this.drawMenu();
+        this.drawUserBadge();
 
         this.setMobileMenuVisibility(false);
+    }
+
+    /*
+    **
+    **
+    */
+    private drawUserBadge() : void {
+
+        if (this.userBadge)
+            this.userBadge.delete();
+
+        const account = ClientLocation.get().api.accountData;
+        if (!account) return;
+
+        this.userBadge = new Div('user-badge', ClientLocation.get().block);
+        this.userBadge.setStyles({
+            'position':      'fixed',
+            'top':           '4px',
+            'right':         '16px',
+            'display':       'flex',
+            'align-items':   'center',
+            'gap':           '8px',
+            'z-index':       '100',
+            'background':    'rgba(255,255,255,0.9)',
+            'border':        '2px solid rgba(155,0,0,1)',
+            'border-radius': '999px',
+            'padding':       '4px 12px 4px 4px',
+            'box-shadow':    '0 1px 4px rgba(0,0,0,0.08)',
+            'cursor':        'default',
+        });
+
+        if (account.picture) {
+            const avatar = new Block('img', { src: account.picture, referrerpolicy: 'no-referrer' }, this.userBadge);
+            avatar.setStyles({
+                'width':        '28px',
+                'height':       '28px',
+                'border-radius':'50%',
+                'object-fit':   'cover',
+            });
+        }
+
+        const name = new Div('', this.userBadge);
+        name.setStyles({ 'font-size': '13px', 'font-weight': '500', 'color': 'rgba(0,0,0,0.75)' });
+        name.write(account.name || account.email);
+
+        this.userBadge.setStyle('cursor', 'pointer');
+        this.userBadge.onNative('click', (e: MouseEvent) => {
+            new ContextMenu(e.clientX, e.clientY, [
+                {
+                    text: 'My account',
+                    callback: () => ClientLocation.get().router.route('/account'),
+                },
+                {
+                    text: 'Log out',
+                    callback: async () => {
+                        await Api.post('/auth/logout');
+                        window.location.reload();
+                    },
+                },
+            ]);
+        });
     }
     
     /*
@@ -81,6 +137,11 @@ export class Navigation extends Div {
     private async onNotConnected() : Promise<void> {
 
         this.setMobileMenuVisibility(false);
+
+        if (this.userBadge) {
+            this.userBadge.delete();
+            this.userBadge = null;
+        }
 
         if (this.menu) {
             await Tools.sleep(350);
@@ -99,10 +160,8 @@ export class Navigation extends Div {
         });
 
         new Div('mask', background).onNative('click', async () => {
-            if (this.reduced)
-                this.enlarge();
-            else
-                this.reduce();
+            
+            this.enlarge();            
         });
 
         new Div('mobile-button menu-button', this).onNative('click', () => {

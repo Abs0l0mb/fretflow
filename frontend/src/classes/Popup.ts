@@ -134,7 +134,8 @@ export class Popup extends Div {
                     class: cancelClass,
                 }, buttons).onNative('click', this.onCancel.bind(this));
             }
-                
+            
+            
             this.validButton = new Button({
                 label: this.data.validText ? this.data.validText : 'Valid',
                 class: validClass

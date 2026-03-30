@@ -35,6 +35,9 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from typing import Annotated, Optional
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -69,6 +72,8 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 APP_BASE_URL    = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
 ALLOWED_EMAILS  = {e.strip() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
 DEV_MODE        = os.environ.get("DEV_MODE", "").lower() in ("1", "true", "yes")
+ADMIN_EMAIL     = os.environ.get("ADMIN_EMAIL", "")
+ADMIN_PASSWORD  = os.environ.get("ADMIN_PASSWORD", "")
 
 SESSION_COOKIE  = "tabify_session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
@@ -175,6 +180,31 @@ async def auth_callback(code: str, request: Request):
 async def auth_logout():
     response = JSONResponse({"error": False, "content": None})
     response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@app.post("/api/auth/login")
+async def auth_login(
+    email:    Annotated[str, Form()],
+    password: Annotated[str, Form()],
+):
+    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+        return JSONResponse({"error": True, "content": "password-login-not-configured"})
+
+    if email != ADMIN_EMAIL or password != ADMIN_PASSWORD:
+        return JSONResponse({"error": True, "content": "invalid-credentials"})
+
+    user = {"email": ADMIN_EMAIL, "name": ADMIN_EMAIL.split("@")[0], "picture": ""}
+    cookie = make_session_cookie(user)
+    response = JSONResponse({"error": False, "content": user})
+    response.set_cookie(
+        SESSION_COOKIE,
+        cookie,
+        max_age=SESSION_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=APP_BASE_URL.startswith("https"),
+    )
     return response
 
 

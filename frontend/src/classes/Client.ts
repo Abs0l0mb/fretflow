@@ -8,7 +8,9 @@ import {
 } from '@src/classes';
 
 import {
-    TabifyPage
+    TabifyPage,
+    LoginPage,
+    AccountPage,
 } from '@src/classes';
 
 export interface AppData {
@@ -59,14 +61,14 @@ export class Client extends AbstractClient {
     public onNotConnected() : void {
 
         this.router.setRoutes({
-            '/': TabifyPage
+            '/': LoginPage
         });
 
         this.router.route('/');
 
         this.setNavigationAvailability(false);
     }
-    
+
     /*
     **
     **
@@ -74,12 +76,14 @@ export class Client extends AbstractClient {
     public async onConnected() : Promise<void> {
 
         this.router.setRoutes({
+            '/':        TabifyPage,
+            '/account': AccountPage,
         });
 
         ApiRequestsManager.lock();
         this.router.routeCurrentPath();
         ApiRequestsManager.unlock();
-        
+
         this.setNavigationAvailability(!this.isPopup());
     }
 

@@ -88,4 +88,5 @@ export { DeleteMySessionPopup } from './classes/pages/me/popups/DeleteMySessionP
 export { MyDataTable } from './classes/pages/me/tables/MyDataTable';
 export { MySessionsTable } from './classes/pages/me/tables/MySessionsTable';
 
-export { TabifyPage } from './classes/pages/tabify/TabifyPage';
+export { TabifyPage }   from './classes/pages/tabify/TabifyPage';
+export { AccountPage }  from './classes/pages/account/AccountPage';

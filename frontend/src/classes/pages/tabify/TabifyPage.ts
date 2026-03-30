@@ -25,9 +25,15 @@ export class TabifyPage extends TitledPage {
     private values: { [key: string]: number } = {};
     private inputs: { [key: string]: SimpleNumberInput } = {};
 
+    private playerContainer: Div | null = null;
+    private playPauseButton: Button | null = null;
+    private stopButton: Button | null = null;
+    private playerStatus: Div | null = null;
+    private alphaTabApi: any = null;
+
     constructor() {
 
-        super('Tabify', 'tabify');
+        super();
         this.build();
     }
 
@@ -280,7 +286,37 @@ export class TabifyPage extends TitledPage {
         footer.setStyle('margin-top', '8px');
         this.submitButton = new Button({ label: 'Générer la tablature' }, footer);
         this.submitButton.onNative('click', this.onSubmit.bind(this));
+
+        // ── AlphaTab player ───────────────────────────────────────────
+        this.playerContainer = new Div('light-zone', main);
+        this.playerContainer.setStyles({ 'margin-top': '16px', 'display': 'none' });
+
+        const playerControls = new Div('', this.playerContainer);
+        playerControls.setStyles({
+            'display':       'flex',
+            'align-items':   'center',
+            'gap':           '8px',
+            'padding':       '10px 16px',
+            'border-bottom': '1px solid rgba(0,0,0,0.08)',
+        });
+
+        this.playPauseButton = new Button({ label: '▶ Play' }, playerControls);
+        this.playPauseButton.onNative('click', () => this.alphaTabApi?.playPause());
+
+        this.stopButton = new Button({ label: '■ Stop' }, playerControls);
+        this.stopButton.onNative('click', () => this.alphaTabApi?.stop());
+
+        this.playerStatus = new Div('', playerControls);
+        this.playerStatus.setStyles({ 'font-size': '12px', 'color': 'rgba(0,0,0,0.4)', 'margin-left': '8px' });
+
+        const atContainer = new Div('', this.playerContainer);
+        atContainer.setAttribute('id', 'alphatab-container');
+        atContainer.setStyles({ 'overflow-x': 'auto', 'min-height': '200px' });
+
+        this._atContainer = atContainer;
     }
+
+    private _atContainer: Div | null = null;
 
     /*
     **
@@ -396,11 +432,79 @@ export class TabifyPage extends TitledPage {
             a.click();
             URL.revokeObjectURL(url);
 
+            await this.loadGp5(arrayBuffer);
+
         } catch (error) {
             alert(`Erreur : ${error}`);
         } finally {
             this.submitButton.unload();
         }
+    }
+
+    /*
+    **
+    **
+    */
+    private ensureAlphaTabScript(): Promise<void> {
+
+        return new Promise((resolve, reject) => {
+
+            if ((window as any).alphaTab) { resolve(); return; }
+
+            const script = document.createElement('script');
+            script.src = '/assets/alphatab/alphaTab.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load AlphaTab script'));
+            document.head.appendChild(script);
+        });
+    }
+
+    /*
+    **
+    **
+    */
+    private async loadGp5(arrayBuffer: ArrayBuffer): Promise<void> {
+
+        await this.ensureAlphaTabScript();
+
+        const at = (window as any).alphaTab;
+
+        if (!this.playerContainer || !this._atContainer) return;
+
+        this.playerContainer.setStyle('display', 'block');
+        this.playerStatus!.write('Loading…');
+
+        if (this.alphaTabApi) {
+            this.alphaTabApi.load(new Uint8Array(arrayBuffer));
+            return;
+        }
+
+        const container = this._atContainer.element as HTMLElement;
+
+        this.alphaTabApi = new at.AlphaTabApi(container, {
+            core: {
+                scriptFile:    '/assets/alphatab/alphaTab.min.js',
+                fontDirectory: '/assets/alphatab/font/',
+            },
+            player: {
+                enablePlayer: true,
+                soundFont:    '/assets/alphatab/soundfont/sonivox.sf2',
+            },
+        });
+
+        this.alphaTabApi.playerStateChanged.on((e: any) => {
+            this.playPauseButton!.write(e.state === 1 ? '⏸ Pause' : '▶ Play');
+        });
+
+        this.alphaTabApi.scoreLoaded.on(() => {
+            this.playerStatus!.write('');
+        });
+
+        this.alphaTabApi.error.on((e: any) => {
+            this.playerStatus!.write('Error: ' + (e.message ?? e));
+        });
+
+        this.alphaTabApi.load(new Uint8Array(arrayBuffer));
     }
 
     /*

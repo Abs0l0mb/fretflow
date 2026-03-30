@@ -187,15 +187,10 @@ export class Api extends Emitter {
      * ```
      */
     public async checkAuth() : Promise<void> {
-        
-        if (!!!localStorage.getItem(ApiRequest.LOCAL_STORAGE_TOKEN_NAME))
-            return this.emit('not-connected');
 
         try {
 
             this.accountData = await Api.get('/me');
-            
-            this.accountData!.rights = this.accountData!.RIGHT_NAMES ? this.accountData!.RIGHT_NAMES?.split(',') : [];
 
             console.info(`[Logged in]`);
 

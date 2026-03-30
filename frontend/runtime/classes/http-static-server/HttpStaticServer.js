@@ -163,10 +163,24 @@ export class HttpStaticServer {
 
         return {
             '.html': 'text/html',
-            '.js': 'text/javascript',
-            '.css': 'text/css',
-            '.png': 'image/png',
-            '.ico': 'image/x-icon'
+            '.js':   'text/javascript',
+            '.mjs':  'text/javascript',
+            '.css':  'text/css',
+            '.png':  'image/png',
+            '.jpg':  'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif':  'image/gif',
+            '.svg':  'image/svg+xml',
+            '.ico':  'image/x-icon',
+            '.woff':  'font/woff',
+            '.woff2': 'font/woff2',
+            '.eot':   'application/vnd.ms-fontobject',
+            '.otf':   'font/otf',
+            '.ttf':   'font/ttf',
+            '.sf2':   'application/octet-stream',
+            '.sf3':   'application/octet-stream',
+            '.json':  'application/json',
+            '.txt':   'text/plain',
         }[extname];
     }
 
