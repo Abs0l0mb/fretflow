@@ -41,12 +41,18 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from pathlib import Path
+import bcrypt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from db import (
+    upsert_user, get_user_by_email, get_password_hash, set_password_hash,
+    check_and_increment_usage, close_pool, FREE_CONVERSIONS_PER_MONTH,
+)
 from midi_to_jsonl import midi_to_jsonl_active_compressed
 from viterbi_predict import load_config, load_events_from_jsonl, viterbi_decode, save_predicted_jsonl
 from jsonl_to_tab import load_pred_events, build_gp5_from_pred_rows, E_STD_TUNING
@@ -112,7 +118,14 @@ def require_user(request: Request) -> dict:
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Tabify", docs_url=None, redoc_url=None)
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await close_pool()
+
+app = FastAPI(title="Tabify", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 # ---------------------------------------------------------------------------
 # Google OAuth endpoints
@@ -157,6 +170,14 @@ async def auth_callback(code: str, request: Request):
     if ALLOWED_EMAILS and email not in ALLOWED_EMAILS:
         return RedirectResponse(f"/?error=not-allowed")
 
+    if DATABASE_URL:
+        await upsert_user(
+            email=email,
+            name=info.get("name", email),
+            picture=info.get("picture", ""),
+            google_id=info.get("sub"),
+        )
+
     user = {
         "email":   email,
         "name":    info.get("name", email),
@@ -188,13 +209,27 @@ async def auth_login(
     email:    Annotated[str, Form()],
     password: Annotated[str, Form()],
 ):
-    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
-        return JSONResponse({"error": True, "content": "password-login-not-configured"})
+    # DB-backed login
+    if DATABASE_URL:
+        stored_hash = await get_password_hash(email)
+        if not stored_hash:
+            return JSONResponse({"error": True, "content": "invalid-credentials"})
+        if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
+            return JSONResponse({"error": True, "content": "invalid-credentials"})
+        db_user = await get_user_by_email(email)
+        user = {
+            "email":   db_user["email"],
+            "name":    db_user["name"] or email.split("@")[0],
+            "picture": db_user["picture"] or "",
+        }
+    else:
+        # Fallback: single admin account via env vars (no DB)
+        if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+            return JSONResponse({"error": True, "content": "password-login-not-configured"})
+        if email != ADMIN_EMAIL or password != ADMIN_PASSWORD:
+            return JSONResponse({"error": True, "content": "invalid-credentials"})
+        user = {"email": ADMIN_EMAIL, "name": ADMIN_EMAIL.split("@")[0], "picture": ""}
 
-    if email != ADMIN_EMAIL or password != ADMIN_PASSWORD:
-        return JSONResponse({"error": True, "content": "invalid-credentials"})
-
-    user = {"email": ADMIN_EMAIL, "name": ADMIN_EMAIL.split("@")[0], "picture": ""}
     cookie = make_session_cookie(user)
     response = JSONResponse({"error": False, "content": user})
     response.set_cookie(
@@ -449,8 +484,20 @@ async def tabify(
     string_jump_threshold:       Annotated[Optional[int],   Form()] = None,
     w_string_jump:               Annotated[Optional[float], Form()] = None,
 ):
-    if get_current_user(request) is None:
+    user = get_current_user(request)
+    if user is None:
         return JSONResponse({"error": True, "content": "not-connected"})
+
+    # ── Paywall check ─────────────────────────────────────────────────────
+    if DATABASE_URL and not DEV_MODE:
+        allowed, used, limit = await check_and_increment_usage(user["email"])
+        if not allowed:
+            return JSONResponse({
+                "error": True,
+                "content": "usage-limit-reached",
+                "conversions_used": used,
+                "conversions_limit": limit,
+            })
 
     # ── Decode MIDI ──────────────────────────────────────────────────────
     b64 = midi_base64.split(",", 1)[-1] if "," in midi_base64 else midi_base64
