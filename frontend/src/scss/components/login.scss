@@ -1,0 +1,99 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg;
+    padding: 20px;
+}
+
+.login-card {
+    background: $surface;
+    border: 1px solid $border;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-lg;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.login-logo {
+    width: 44px;
+    height: 44px;
+    background: $primary;
+    border-radius: $radius-md;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+}
+
+.login-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: $text;
+    text-align: center;
+    margin-bottom: 2px;
+}
+
+.login-subtitle {
+    font-size: 13px;
+    color: $text-3;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.login-google-btn {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid $border-strong;
+    border-radius: $radius-sm;
+    background: $surface;
+    font-size: 14px;
+    font-weight: 500;
+    color: $text;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 120ms, border-color 120ms;
+
+    &:hover { background: $surface-2; border-color: rgba(0,0,0,0.22); }
+}
+
+.login-separator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 6px 0;
+    color: $text-3;
+    font-size: 12px;
+
+    &::before, &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: $border;
+    }
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.login-submit {
+    margin-top: 4px;
+    width: 100%;
+    justify-content: center;
+}

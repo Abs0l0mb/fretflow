@@ -1,0 +1,163 @@
+.page {
+    padding: 24px;
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: $text;
+}
+
+// ── Tabify params ──────────────────────────────────────────────────
+
+.param-group {
+    padding: 16px 20px;
+}
+
+.param-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: $text-3;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid $border;
+}
+
+.param-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.param-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.param-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $text-2;
+    white-space: nowrap;
+}
+
+.param-input {
+    padding: 6px 9px;
+    border: 1px solid $border-strong;
+    border-radius: $radius-sm;
+    font-size: 13px;
+    background: $surface;
+    color: $text;
+    width: 108px;
+    transition: border-color 150ms, box-shadow 150ms;
+
+    &:focus {
+        border-color: $primary;
+        box-shadow: 0 0 0 3px rgba($primary, 0.12);
+    }
+}
+
+.file-zone {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+}
+
+.file-name {
+    font-size: 13px;
+    color: $text-2;
+    font-style: italic;
+}
+
+.submit-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0 4px;
+}
+
+.player-zone { padding: 16px 20px; }
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.player-status {
+    font-size: 12px;
+    color: $text-3;
+}
+
+// ── Account ────────────────────────────────────────────────────────
+
+.account-user-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+}
+
+.account-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.account-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: $text;
+    margin-bottom: 3px;
+}
+
+.account-email {
+    font-size: 13px;
+    color: $text-2;
+}
+
+.account-sub-card {
+    padding: 24px;
+}
+
+.account-sub-text {
+    font-size: 14px;
+    color: $text-2;
+}
+
+// ── Me page ────────────────────────────────────────────────────────
+
+.me-table-wrap {
+    overflow-x: auto;
+    padding: 8px 0;
+}
+
+.empty-state {
+    padding: 32px;
+    text-align: center;
+    color: $text-3;
+    font-size: 13px;
+}

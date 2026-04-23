@@ -1,32 +1,7 @@
+@use "sass:color";
 @import "./variables";
 @import "./global";
-
-@import "./components/top";
-@import "./components/page";
 @import "./components/navigation";
-@import "./components/button";
-@import "./components/simple-select";
-@import "./components/simple-date-input";
-@import "./components/simple-text-input";
-@import "./components/simple-number-input";
-@import "./components/chooser";
-@import "./components/split";
-@import "./components/alt-box";
-@import "./components/table";
-@import "./components/data-table";
-@import "./components/context-menu";
-@import "./components/tabs-view";
-@import "./components/popup";
-@import "./components/vanilla-calendar";
-@import "./components/form";
-@import "./components/date-selection";
-@import "./components/timeframe-input";
-@import "./components/data-template";
-@import "./components/tasks-kanban";
-@import "./components/progress-report";
-
-@import "./components/extensions/desktop-navigation";
-@import "./components/extensions/desktop-footer";
-@import "./components/extensions/desktop-global";
-@import "./components/extensions/desktop-page";
-@import "./components/extensions/login-popup";
+@import "./components/common";
+@import "./components/login";
+@import "./components/pages";

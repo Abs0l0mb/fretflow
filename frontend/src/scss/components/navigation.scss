@@ -1,435 +1,106 @@
-@use "sass:color";
-
-.navigation {
-
-    @at-root #app > .alt-box.navigation-alt-box {
-        display: none;
-    }
-
+.nav {
     position: fixed;
-    z-index: 999;
-    background: #fff;
-    height: 50px;
-    width: 100vw;
-    transform: translateY(-80px);
-    transition: all 500ms;
-    opacity: 0;
+    top: 0; left: 0; right: 0;
+    height: $nav-height;
+    background: $surface;
+    border-bottom: 1px solid $border;
+    box-shadow: $shadow-sm;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 8px;
+}
 
-    //==============
-    //MOBILE BUTTONS
-    //==============
+.nav-logo {
+    font-size: 16px;
+    font-weight: 800;
+    color: $primary;
+    letter-spacing: -0.5px;
+    cursor: pointer;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
 
-    > .mobile-button {
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+}
 
-        $button-color: $main-color;
+.nav-link {
+    padding: 6px 12px;
+    border-radius: $radius-sm;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-2;
+    cursor: pointer;
+    transition: background 150ms, color 150ms;
+    white-space: nowrap;
+    border: none;
+    background: none;
 
-        position: absolute;
-        top: 50%;
-        width: 29px;
-        height: 29px;
-        background-color: $main-color;
-        border-radius: 10px;
-        cursor: pointer;
-        background-size: 50%;
-        background-position: 50%;
-        background-repeat: no-repeat;
-        padding: 2px;
-        transition: all 350ms;
-        opacity: 0;
-        pointer-events: none;
-        visibility: hidden;
+    &:hover { background: $surface-2; color: $text; }
 
-        &:hover { background-color: color.adjust($main-color, $lightness: -5%); }
-        &:active { background-color: color.adjust($main-color, $lightness: -10%); }
-        
-        &.menu-button {
-            left: 10px;
-            transform: translateY(-50%) translateX(-150px);
-            background-image: svg('/assets/images/svg/menu.svg');
-        }
+    &.active {
+        background: $primary-light;
+        color: $primary;
     }
+}
 
-    //====
-    //LOGO
-    //====
+.nav-user {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: background 150ms;
+    flex-shrink: 0;
 
-    > .logo {
-        position: absolute;
-        top: 50%;
-        right: 17px;
-        transform: translateY(-50%) translateX(300px);
-        width: 48px;
-        height: 30px;
-        background-image: svg('/assets/images/svg/tms.svg');
-        background-position: 50%;
-        background-size: 100%;
-        background-repeat: no-repeat;
-        opacity: 0;
-        transition: all 500ms;
-    }
+    &:hover { background: $surface-2; }
+}
 
-    //=======
-    //VERSION
-    //=======
+.nav-user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+}
 
-    > .version {
-        display: none;
-    }
+.nav-user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text;
+}
 
-    //=========
-    //COPYRIGHT
-    //=========
+.nav-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: $surface;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    box-shadow: $shadow-lg;
+    padding: 4px;
+    min-width: 160px;
+    z-index: 200;
+}
 
-    > .copyright {
-        display: none;
-    }
+.nav-dropdown-item {
+    padding: 8px 12px;
+    border-radius: $radius-sm;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text;
+    cursor: pointer;
+    transition: background 120ms;
 
-    //==========
-    //BACKGROUND
-    //==========
+    &:hover { background: $surface-2; }
 
-    > .background {
-
-        content: "";
-        z-index: -1;
-        position: absolute;
-        top: 50px;
-        left: 0;
-        width: 100vw;
-        height: calc(100vh - 50px);
-        background-color: rgba(0, 0, 0, 0.65);
-        opacity: 0;
-        visibility: hidden;
-        transition: all 300ms;
-        
-        @media screen and (max-width: 1023px) {
-            background-image: none !important;
-        }
-
-        > .mask {
-            display: none;
-        }
-    }
-
-    //====
-    //MENU
-    //====
-
-    > .menu {
-
-        z-index: 10;
-        width: max-content;
-        border-radius: 10px;
-        transition: all .3s;
-        position: absolute;
-        top: 70px;
-        opacity: 0;
-        visibility: hidden;
-        background: rgba(255, 255, 255, 0.5);
-        max-height: calc(100vh - 120px);
-        border-radius: 10px;
-        left: 20px;
-        overflow-y: auto;
-        transform: translateX(-200px);
-
-        > .body {
-
-            margin: 8px;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            transform: translateZ(0);
-            isolation: isolate;
-
-            > .menu-item:first-child > .content,
-            > .sub-menu:first-child {
-                border-top: 1px solid rgba(0, 0, 0, 0.15);
-            }
-
-            .menu-item {
-
-                position: relative;
-
-                > .content {
-                    
-                    position: relative;
-                    color: #000;
-                    font-weight: 500;
-                    font-size: 15px;
-                    padding: 12px 53px;
-                    padding-right: 70px;
-                    cursor: pointer;
-                    user-select: none;
-                    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-                    white-space: nowrap;
-                    
-                    &:before {
-                        content: "";
-                        z-index: 10;
-                        width: 20px;
-                        height: 20px;
-                        opacity: 0.8;
-                        background-image: svg('/assets/images/svg/file-black.svg');
-                        background-position: 50%;
-                        background-repeat: no-repeat;
-                        background-size: 100%;
-                        position: absolute;
-                        top: 48%;
-                        left: 22px;
-                        transform: translateY(-50%);
-                    }
-
-                    &:hover { background: #ededed; }
-
-                    &:after {
-                        content: "";
-                        z-index: 0;
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        bottom: 0;
-                        width: 12px;
-                        background: $main-color;
-                        transition: all 0.3s;
-                        transform: translateX(-12px);
-                    }
-                }
-    
-                &[data-selected="1"] > .content:after {
-                    transform: translateX(0);
-                }
-
-                &.tasks > .content:before { background-image: svg('/assets/images/svg/tasks.svg'); }
-                &.archived > .content:before { background-image: svg('/assets/images/svg/archived.svg'); }
-                &.categories > .content:before { background-image: svg('/assets/images/svg/categories3.svg'); }
-                &.members > .content:before { background-image: svg('/assets/images/svg/accounts.svg'); }
-                &.my-account > .content:before { background-image: svg('/assets/images/svg/my-account.svg'); }
-                &.teams > .content:before { background-image: svg('/assets/images/svg/teams.svg'); background-size: 85%; }
-                &.progress-report > .content:before { background-image: svg('/assets/images/svg/pie-chart.svg'); }
-
-                &.my-account {
-
-                    > .button-container {
-
-                        position: absolute;
-                        top: 0;
-                        right: 0;
-                        width: 60px;
-                        height: 100%;
-                        transition: all 250ms;
-
-                        > button {
-    
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            border-radius: 0;
-    
-                            &:before {
-                                content: "";
-                                position: absolute;
-                                top: 0;
-                                left: 0;
-                                width: 100%;
-                                height: 100%;
-                                background-image: svg('/assets/images/svg/logout2.svg');
-                                background-position: 50%;
-                                background-repeat: no-repeat;
-                                background-size: 34%;
-                                pointer-events: none;
-                            }
-                        }
-                    }
-                }
-            }
-
-            > .sub-menu {
-                
-                > .head {
-
-                    position: relative;
-                    color: #000;
-                    font-weight: 500;
-                    font-size: 15px;
-                    padding: 12px 53px;
-                    padding-right: 70px;
-                    cursor: pointer;
-                    user-select: none;
-                    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-                    white-space: nowrap;
-                    transition: all 0.3s;
-
-                    &:before {
-                        content: "";
-                        width: 20px;
-                        height: 20px;
-                        opacity: 0.8;
-                        background-image: svg('/assets/images/svg/chevron.svg');
-                        background-position: 50%;
-                        background-repeat: no-repeat;
-                        background-size: 68%;
-                        position: absolute;
-                        top: 48%;
-                        left: 22px;
-                        transform: translateY(-50%);
-                        transition: all 0.3s;
-                    }
-                        
-                    &:hover {
-                        background: rgba(0, 0, 0, 0.08);
-                    }
-
-                    &:after {
-                        content: "";
-                        z-index: 0;
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        bottom: 0;
-                        width: 12px;
-                        background: $main-color;
-                        transition: all 0.3s;
-                        transform: translateX(-12px);
-                    }
-                }
-    
-                &[data-opened="0"][data-selected="1"] > .head:after {
-                    transform: translateX(0);
-                }
-
-                &[data-opened="1"] {
-
-                    .head {
-                    
-                        background: $neutral-color;
-                        
-                        &:before {
-                            transform: translateY(-50%) rotate(90deg);
-                        }
-                    }                    
-                }
-
-                > .body {
-
-                    position: relative;
-                    z-index: 0;
-                    transition: all 0.3s;
-                    overflow: hidden;
-                    
-                    > .items {
-                        
-                        > .menu-item > .content {
-
-                            background: $neutral-color-2;
-                            
-                            &:hover {
-                                background: $neutral-color;
-                            }
-                            
-                            &:last-child {
-                                border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
-                            }
-                        }
-                    }
-                }
-
-                //============
-                //TEAM SUBMENU
-                //============
-
-                &.team {
-
-                    > .head {
-
-                        padding-right: 0;
-
-                        > .simple-select {
-
-                            background: rgba(0, 0, 0, 0.05);
-                            border: 1px solid rgba(0, 0, 0, 0.1);
-                            border-radius: 0px;
-                            margin: 10px;
-                            margin-left: 0;
-                            margin-bottom: 0;
-                            border-radius: 4px;
-
-                            > .text {
-                                padding-left: 10px;
-                            }
-                        }
-
-                        @at-root #app[data-navigation-reduced="1"] > .navigation > .menu .team .simple-select {
-                            opacity: 0;
-                            pointer-events: none;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    //========
-    //TRIGGERS
-    //========
-
-    @at-root #app[data-navigation-available="1"] > .navigation {
-        
-        opacity: 1;
-        transform: translateY(0);
-        
-        > .title {
-            transform: translateY(-50%);
-            opacity: 1;
-        }
-
-        > .logo {
-            transform: translateY(-50%);
-            opacity: 1;
-        }
-        
-        > .title {
-            transform: translateY(-50%) translateX(40px);
-        }
-
-        > .mobile-button.menu-button {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: all;
-            transform: translateY(-50%) translateX(0);
-        }
-    }
-    
-    &[data-mobile-menu-displayed="1"] {
-
-        > .background {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        > .mobile-button.menu-button {
-            opacity: 0.5;
-        }
-
-        > .menu {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(0);
-        }
-    }
-    
-    &[data-mobile-user-displayed="1"] {
-
-        > .background {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        > .my-account {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(0);
-        }
+    &.danger { color: $danger;
+        &:hover { background: $danger-light; }
     }
 }

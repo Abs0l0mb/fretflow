@@ -20,24 +20,29 @@ python gp_to_midi.py --input ../sf.gp5 --output ../sf.mid
 
 ### Dev
 
-Frontend :
+Frontend:
 ```bash
-.\frontend\run -d
+cd frontend
+npm run dev
 ```
 
-Backend :
+Backend:
 ```bash
 cd python
 python server.py --dev
 ```
 
+The frontend dev server runs on port **10201** and proxies `/api` requests to the backend on port **8000**.
+
 ### Prod
 
-Frontend :
+Build the frontend:
 ```bash
-.\frontend\run -b
+cd frontend
+npm run build   # outputs to frontend/dist/
 ```
 
+Run via Docker:
 ```bash
 docker build -t tabify .
 docker run -p 8000:8000 \
@@ -48,37 +53,49 @@ docker run -p 8000:8000 \
   tabify
 ```
 
----
+## Frontend
 
-## TODO — Authentication layer (next session)
+The frontend is a **React + Vite + TypeScript** SPA located in `frontend/`.
 
-### Google Cloud Console (manual)
-- Create a project → APIs & Services → Credentials → OAuth 2.0 Client ID
-- Application type: **Web application**
-- Add authorized redirect URI: `http://localhost:8000/api/auth/callback` (+ prod domain)
-- Copy **Client ID** and **Client Secret** into env vars
-
-### Frontend code changes (not yet done)
-- `frontend/src/classes/network/Api.ts` — remove the localStorage short-circuit in `checkAuth()` so it always calls `/api/me` (currently skips the server call if no token in localStorage, which blocks cookie-based auth)
-- `frontend/src/classes/Client.ts` — fix routing: `onNotConnected()` → `LoginPage`, `onConnected()` → `TabifyPage`
-- `frontend/src/classes/pages/login/popups/LoginPopup.ts` — replace the email/password form with a single "Login with Google" button that redirects to `GET /api/auth/google`
-
-### Backend already done
-- `GET /api/auth/google` — redirects to Google OAuth
-- `GET /api/auth/callback` — exchanges code, sets signed httponly session cookie, redirects to `/`
-- `POST /api/auth/logout` — clears cookie
-- `GET /api/me` — validates cookie, returns user `{email, name, picture}`
-- Auth guard on `/api/tabify` and `/api/suggest-params`
-- `ALLOWED_EMAILS` env var for access control (empty = allow all Google accounts)
-
-### Tune profile (run once after setup)
-```bash
-cd python
-python tune_viterbi.py --phase profile \
-  --dataset_dir ../dev_folder/jsonl_dataset \
-  --n_profile_files 2000 \
-  --profile_out tune_profile.json
 ```
+frontend/
+  index.html
+  vite.config.ts
+  src/
+    main.tsx              # app entry point
+    App.tsx               # auth gate + React Router routes
+    api.ts                # fetch wrapper (GET / POST / binary)
+    contexts/
+      AuthContext.tsx      # user auth state, checkAuth, logout
+    components/
+      Navigation.tsx       # sidebar nav + user badge
+    pages/
+      Login.tsx            # Google OAuth + email/password login
+      Tabify.tsx           # MIDI → GP5 converter with AlphaTab player
+      Account.tsx          # user info + subscription
+      Me.tsx               # data / sessions tabs, edit + delete modals
+    assets/               # alphatab, favicon, images
+    scss/                 # global styles
+```
+
+### Environment — `python/.env`
+
+| Variable              | Description                                         |
+|-----------------------|-----------------------------------------------------|
+| `APP_BASE_URL`        | Base URL of the app (e.g. `http://localhost:8000`)  |
+| `ADMIN_EMAIL`         | Fallback admin login email (no DB required)         |
+| `ADMIN_PASSWORD`      | Fallback admin login password                       |
+| `GOOGLE_CLIENT_ID`    | Google OAuth client ID                              |
+| `GOOGLE_CLIENT_SECRET`| Google OAuth client secret                          |
+| `SECRET_KEY`          | Session signing key                                 |
+| `DATABASE_URL`        | Postgres connection string (optional, enables DB)   |
+| `ALLOWED_EMAILS`      | Comma-separated list of allowed emails (empty = all)|
+
+### Auth
+
+- **Google OAuth**: click "Sign in with Google" → redirects to `/api/auth/google`
+- **Admin fallback**: set `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` to enable email+password login without a database. The email field must match `ADMIN_EMAIL` exactly (use a valid email format, e.g. `user@local.dev`).
+- Sessions are cookie-based (httponly, signed).
 
 ---
 
@@ -87,9 +104,8 @@ python tune_viterbi.py --phase profile \
 Model: **freemium** — N free conversions/month, then paid subscription via Stripe.
 
 ### Implementation order
-1. Finish auth (Google OAuth) first
-2. Add **Supabase** (managed Postgres) — create project at supabase.com, copy connection string into `DATABASE_URL` env var. Minimum schema: `users(email, plan, conversions_used, stripe_customer_id)`
-3. Stripe integration
+1. Add **Supabase** (managed Postgres) — create project at supabase.com, copy connection string into `DATABASE_URL` env var. Minimum schema: `users(email, plan, conversions_used, stripe_customer_id)`
+2. Stripe integration
 
 ### Backend to build
 - `POST /api/checkout` — create Stripe Checkout session → return redirect URL

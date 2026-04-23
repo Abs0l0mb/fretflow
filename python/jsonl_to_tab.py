@@ -276,6 +276,22 @@ def build_gp5_from_pred_rows(
         track.measures.pop()
         song.measureHeaders.pop()
 
+    # Ensure every voice[1] has at least a whole-measure rest so AlphaTab
+    # can read the file without hitting undefined.beats on the second voice.
+    for measure in track.measures:
+        v1 = measure.voices[1]
+        if not v1.beats:
+            rest = models.Beat(voice=v1)
+            rest.status = models.BeatStatus.rest
+            rest.duration = models.Duration.fromTime(
+                measure_len_ticks(
+                    measure.header.timeSignature.numerator,
+                    measure.header.timeSignature.denominator.value,
+                    quarter_ticks,
+                )
+            )
+            v1.beats = [rest]
+
     os.makedirs(os.path.dirname(out_gp5_path) or ".", exist_ok=True)
     guitarpro.write(song, out_gp5_path, version=(5, 1, 0))
     return out_gp5_path
