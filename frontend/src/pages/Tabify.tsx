@@ -90,9 +90,15 @@ function fileToBase64(file: File): Promise<string> {
     })
 }
 
-// ── AlphaTab player component ──────────────────────────────────────
+// ── AlphaTab modal ─────────────────────────────────────────────────
 
-function AlphaTabPlayer({ gp5Buffer }: { gp5Buffer: ArrayBuffer }) {
+interface AlphaTabModalProps {
+    gp5Buffer: ArrayBuffer
+    fileName: string
+    onClose: () => void
+}
+
+function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const apiRef = useRef<at.AlphaTabApi | null>(null)
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -118,9 +124,7 @@ function AlphaTabPlayer({ gp5Buffer }: { gp5Buffer: ArrayBuffer }) {
         api.playerStateChanged.on((e: at.PlayerStateChangedEventArgs) => {
             setPlaying(e.state === at.synth.PlayerState.Playing)
         })
-
         api.scoreLoaded.on(() => setStatus('ready'))
-
         api.error.on((e: at.Error) => {
             setStatus('error')
             setErrorMsg(e.message ?? String(e))
@@ -135,35 +139,63 @@ function AlphaTabPlayer({ gp5Buffer }: { gp5Buffer: ArrayBuffer }) {
         }
     }, [gp5Buffer])
 
+    // Close on Escape
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [onClose])
+
+    const handleDownload = () => {
+        const url = URL.createObjectURL(new Blob([gp5Buffer], { type: 'application/octet-stream' }))
+        Object.assign(document.createElement('a'), { href: url, download: fileName }).click()
+        URL.revokeObjectURL(url)
+    }
+
     return (
-        <div className="card player-zone">
-            <div className="player-controls">
-                <button
-                    className="btn btn-primary"
-                    onClick={() => apiRef.current?.playPause()}
-                    disabled={status !== 'ready'}
-                >
-                    {playing ? '⏸ Pause' : '▶ Play'}
-                </button>
-                <button
-                    className="btn"
-                    onClick={() => apiRef.current?.stop()}
-                    disabled={status !== 'ready'}
-                >
-                    ■ Stop
-                </button>
-                {status === 'loading' && (
-                    <span className="player-status">
-                        <span className="btn-spinner" style={{ display: 'inline-block' }} /> Loading score…
-                    </span>
-                )}
-                {status === 'error' && (
-                    <span className="player-status" style={{ color: 'var(--danger, #dc2626)' }}>
-                        Error: {errorMsg}
-                    </span>
-                )}
+        <div className="modal-overlay player-modal-overlay" onClick={onClose}>
+            <div className="player-modal" onClick={e => e.stopPropagation()}>
+                <div className="player-modal-header">
+                    <div className="player-controls">
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => apiRef.current?.playPause()}
+                            disabled={status !== 'ready'}
+                        >
+                            {playing ? '⏸ Pause' : '▶ Play'}
+                        </button>
+                        <button
+                            className="btn"
+                            onClick={() => apiRef.current?.stop()}
+                            disabled={status !== 'ready'}
+                        >
+                            ■ Stop
+                        </button>
+                        <button className="btn" onClick={handleDownload}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Download .gp5
+                        </button>
+                        {status === 'loading' && (
+                            <span className="player-status">
+                                <span className="btn-spinner" style={{ display: 'inline-block' }} /> Loading score…
+                            </span>
+                        )}
+                        {status === 'error' && (
+                            <span className="player-status player-status-error">
+                                Error: {errorMsg}
+                            </span>
+                        )}
+                    </div>
+                    <button className="btn player-modal-close" onClick={onClose} title="Close (Esc)">
+                        ✕
+                    </button>
+                </div>
+                <div ref={containerRef} className="alphatab-container" />
             </div>
-            <div ref={containerRef} className="alphatab-container" />
         </div>
     )
 }
@@ -177,6 +209,7 @@ export default function Tabify() {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
     const [gp5Buffer, setGp5Buffer] = useState<ArrayBuffer | null>(null)
+    const [gp5Name, setGp5Name] = useState('')
 
     const setParam = useCallback((key: string, value: number) => {
         setValues(prev => ({ ...prev, [key]: value }))
@@ -212,12 +245,7 @@ export default function Tabify() {
             Object.entries(values).forEach(([k, v]) => params.append(k, String(v)))
             const buffer: ArrayBuffer = await api.request('POST', '/tabify', params, true)
 
-            const url = URL.createObjectURL(new Blob([buffer], { type: 'application/octet-stream' }))
-            Object.assign(document.createElement('a'), {
-                href: url, download: parts.name.replace(/\.midi?$/i, '.gp5')
-            }).click()
-            URL.revokeObjectURL(url)
-
+            setGp5Name(parts.name.replace(/\.midi?$/i, '.gp5'))
             setGp5Buffer(buffer)
         } catch (e: any) {
             setError(e.message)
@@ -278,7 +306,14 @@ export default function Tabify() {
                 </button>
             </div>
 
-            {gp5Buffer && <AlphaTabPlayer key={gp5Buffer.byteLength} gp5Buffer={gp5Buffer} />}
+            {gp5Buffer && (
+                <AlphaTabModal
+                    key={gp5Buffer.byteLength}
+                    gp5Buffer={gp5Buffer}
+                    fileName={gp5Name}
+                    onClose={() => setGp5Buffer(null)}
+                />
+            )}
         </div>
     )
 }
