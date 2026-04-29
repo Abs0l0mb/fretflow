@@ -9,8 +9,8 @@ app = Flask(__name__)
 MAX_MIDI_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-@app.route("/tabify", methods=["POST"])
-def tabify():
+@app.route("/convert", methods=["POST"])
+def convert():
     if "midi" not in request.files:
         return jsonify({"error": "Missing 'midi' file in form-data"}), 400
 

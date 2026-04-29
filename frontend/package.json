@@ -1,6 +1,6 @@
 {
-    "name": "tabify-frontend",
-    "description": "Tabify Frontend",
+    "name": "fretflow-frontend",
+    "description": "FretFlow Frontend",
     "license": "Proprietary",
     "author": "dnme",
     "private": true,

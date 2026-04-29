@@ -20,7 +20,7 @@ export default function Navigation() {
 
     return (
         <nav className="nav">
-            <span className="nav-logo" onClick={() => navigate('/')}>Tabify</span>
+            <span className="nav-logo" onClick={() => navigate('/')}>FretFlow</span>
 
             <div className="nav-links">
                 <button

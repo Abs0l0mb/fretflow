@@ -44,13 +44,13 @@ npm run build   # outputs to frontend/dist/
 
 Run via Docker:
 ```bash
-docker build -t tabify .
+docker build -t fretflow .
 docker run -p 8000:8000 \
   -e GOOGLE_CLIENT_ID=xxx \
   -e GOOGLE_CLIENT_SECRET=yyy \
   -e SECRET_KEY=long-random-string \
   -e APP_BASE_URL=https://yourdomain.com \
-  tabify
+  fretflow
 ```
 
 ## Frontend
@@ -71,7 +71,7 @@ frontend/
       Navigation.tsx       # sidebar nav + user badge
     pages/
       Login.tsx            # Google OAuth + email/password login
-      Tabify.tsx           # MIDI → GP5 converter with AlphaTab player
+      Fretflow.tsx         # MIDI → GP5 converter with AlphaTab player
       Account.tsx          # user info + subscription
       Me.tsx               # data / sessions tabs, edit + delete modals
     assets/               # alphatab, favicon, images
@@ -110,7 +110,7 @@ Model: **freemium** — N free conversions/month, then paid subscription via Str
 ### Backend to build
 - `POST /api/checkout` — create Stripe Checkout session → return redirect URL
 - `POST /api/stripe/webhook` — handle payment success / cancellation / renewal
-- Paywall middleware on `/api/tabify` and `/api/suggest-params` (check plan + conversions_used)
+- Paywall middleware on `/api/fretflow` and `/api/suggest-params` (check plan + conversions_used)
 
 ### Frontend to build
 - Usage counter display (e.g. "3/5 conversions used this month")

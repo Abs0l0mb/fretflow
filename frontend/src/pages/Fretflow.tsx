@@ -200,9 +200,9 @@ function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
     )
 }
 
-// ── Main Tabify page ───────────────────────────────────────────────
+// ── Main FretFlow page ─────────────────────────────────────────────
 
-export default function Tabify() {
+export default function Fretflow() {
     const [file, setFile] = useState<File | null>(null)
     const [values, setValues] = useState<Record<string, number>>(buildDefaults)
     const [suggesting, setSuggesting] = useState(false)
@@ -243,7 +243,7 @@ export default function Tabify() {
         try {
             const params = new URLSearchParams({ midi_base64: parts.base64, midi_name: parts.name })
             Object.entries(values).forEach(([k, v]) => params.append(k, String(v)))
-            const buffer: ArrayBuffer = await api.request('POST', '/tabify', params, true)
+            const buffer: ArrayBuffer = await api.request('POST', '/convert', params, true)
 
             setGp5Name(parts.name.replace(/\.midi?$/i, '.gp5'))
             setGp5Buffer(buffer)

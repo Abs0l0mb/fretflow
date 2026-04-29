@@ -1,5 +1,5 @@
 """
-server.py — Production FastAPI backend for Tabify
+server.py — Production FastAPI backend for FretFlow
 
 Auth:
   GET  /api/auth/google    → redirect to Google OAuth consent
@@ -8,7 +8,7 @@ Auth:
   GET  /api/me             → return current user (validates cookie)
 
 Protected endpoints (require valid session):
-  POST /api/tabify         → MIDI (base64) + viterbi params → GP5 binary
+  POST /api/convert         → MIDI (base64) + viterbi params → GP5 binary
   POST /api/suggest-params → MIDI (base64) → best viterbi params as JSON
   POST /api/mp3/stems      → MP3 (base64) → {stem: MIDI base64, …}
 
@@ -30,6 +30,7 @@ import argparse
 import asyncio
 import base64
 import os
+import secrets
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -51,8 +52,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from db import (
     upsert_user, get_user_by_email, get_password_hash, set_password_hash,
-    check_and_increment_usage, close_pool, FREE_CONVERSIONS_PER_MONTH,
+    create_user_with_password, check_and_increment_usage, close_pool,
+    verify_email_token, set_verification_token, FREE_CONVERSIONS_PER_MONTH,
 )
+from email_utils import send_verification_email
 from midi_to_jsonl import midi_to_jsonl_active_compressed
 from viterbi_predict import load_config, load_events_from_jsonl, viterbi_decode, save_predicted_jsonl
 from jsonl_to_tab import load_pred_events, build_gp5_from_pred_rows, E_STD_TUNING
@@ -81,9 +84,9 @@ DEV_MODE        = os.environ.get("DEV_MODE", "").lower() in ("1", "true", "yes")
 ADMIN_EMAIL     = os.environ.get("ADMIN_EMAIL", "")
 ADMIN_PASSWORD  = os.environ.get("ADMIN_PASSWORD", "")
 
-SESSION_COOKIE  = "tabify_session"
+SESSION_COOKIE  = "fretflow_session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
-_signer         = URLSafeTimedSerializer(SECRET_KEY, salt="tabify-session")
+_signer         = URLSafeTimedSerializer(SECRET_KEY, salt="fretflow-session")
 
 _executor = ThreadPoolExecutor(max_workers=int(os.environ.get("VITERBI_WORKERS", "2")))
 
@@ -125,7 +128,7 @@ async def lifespan(app: FastAPI):
     yield
     await close_pool()
 
-app = FastAPI(title="Tabify", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title="FretFlow", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 # ---------------------------------------------------------------------------
 # Google OAuth endpoints
@@ -213,10 +216,12 @@ async def auth_login(
     if DATABASE_URL:
         stored_hash = await get_password_hash(email)
         if not stored_hash:
-            return JSONResponse({"error": True, "content": "invalid-credentials"})
+            return JSONResponse({"error": True, "content": "invalid-credentials"}, status_code=401)
         if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
-            return JSONResponse({"error": True, "content": "invalid-credentials"})
+            return JSONResponse({"error": True, "content": "invalid-credentials"}, status_code=401)
         db_user = await get_user_by_email(email)
+        if not db_user.get("email_verified"):
+            return JSONResponse({"error": True, "content": "email-not-verified"}, status_code=403)
         user = {
             "email":   db_user["email"],
             "name":    db_user["name"] or email.split("@")[0],
@@ -244,14 +249,69 @@ async def auth_login(
 
 
 # ---------------------------------------------------------------------------
-# /api/me — Auth stub: always returns not-connected so the frontend shows TabifyPage
+# /api/auth/register
+# ---------------------------------------------------------------------------
+
+@app.post("/api/auth/register")
+async def auth_register(
+    email:    Annotated[str, Form()],
+    password: Annotated[str, Form()],
+):
+    if not DATABASE_URL:
+        return JSONResponse({"error": True, "content": "db-not-configured"}, status_code=503)
+
+    email = email.strip().lower()
+    if not email or not password:
+        return JSONResponse({"error": True, "content": "missing-fields"}, status_code=400)
+    if len(password) < 8:
+        return JSONResponse({"error": True, "content": "password-too-short"}, status_code=400)
+
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    token = secrets.token_urlsafe(32)
+    name  = email.split("@")[0]
+
+    row = await create_user_with_password(email, name, password_hash, token)
+    if row is None:
+        return JSONResponse({"error": True, "content": "email-already-registered"}, status_code=409)
+
+    verification_link = f"{APP_BASE_URL}/api/auth/verify-email?token={token}"
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, send_verification_email, email, verification_link
+        )
+    except Exception as e:
+        return JSONResponse({"error": True, "content": f"email-send-failed: {e}"}, status_code=500)
+
+    return JSONResponse({"error": False, "content": "verification-email-sent"})
+
+
+@app.get("/api/auth/verify-email")
+async def auth_verify_email(token: str):
+    row = await verify_email_token(token)
+    if row is None:
+        return RedirectResponse("/?error=invalid-or-expired-token")
+
+    user = {"email": row["email"], "name": row["name"] or row["email"], "picture": row.get("picture") or ""}
+    cookie = make_session_cookie(user)
+    response = RedirectResponse("/")
+    response.set_cookie(
+        SESSION_COOKIE, cookie,
+        max_age=SESSION_MAX_AGE, httponly=True, samesite="lax",
+        secure=APP_BASE_URL.startswith("https"),
+    )
+    return response
+
+
+# ---------------------------------------------------------------------------
+# /api/me
 # ---------------------------------------------------------------------------
 
 @app.get("/api/me")
 async def me(request: Request):
     user = get_current_user(request)
     if user is None:
-        return JSONResponse({"error": True, "content": "not-connected"})
+        return JSONResponse({"error": True, "content": "not-connected"}, status_code=401)
     return JSONResponse({"error": False, "content": user})
 
 
@@ -378,7 +438,7 @@ async def mp3_stems(
     Returns JSON:
       { "error": false, "content": { "guitar": "<base64 MIDI>", "bass": "<base64 MIDI>" } }
 
-    The base64 MIDIs can be passed directly to /api/tabify as midi_base64.
+    The base64 MIDIs can be passed directly to /api/convert as midi_base64.
     """
     if get_current_user(request) is None:
         return JSONResponse({"error": True, "content": "not-connected"})
@@ -431,11 +491,11 @@ async def mp3_stems(
 
 
 # ---------------------------------------------------------------------------
-# /api/tabify — Main endpoint
+# /api/convert — Main endpoint
 # ---------------------------------------------------------------------------
 
-@app.post("/api/tabify")
-async def tabify(
+@app.post("/api/convert")
+async def convert(
     request:      Request,
     midi_base64:  Annotated[str,           Form()],
     midi_name:    Annotated[Optional[str], Form()] = "input.mid",
@@ -486,7 +546,7 @@ async def tabify(
 ):
     user = get_current_user(request)
     if user is None:
-        return JSONResponse({"error": True, "content": "not-connected"})
+        return JSONResponse({"error": True, "content": "not-connected"}, status_code=401)
 
     # ── Paywall check ─────────────────────────────────────────────────────
     if DATABASE_URL and not DEV_MODE:
@@ -497,7 +557,7 @@ async def tabify(
                 "content": "usage-limit-reached",
                 "conversions_used": used,
                 "conversions_limit": limit,
-            })
+            }, status_code=402)
 
     # ── Decode MIDI ──────────────────────────────────────────────────────
     b64 = midi_base64.split(",", 1)[-1] if "," in midi_base64 else midi_base64
@@ -601,7 +661,7 @@ async def tabify(
         loop = asyncio.get_event_loop()
         gp5_bytes = await loop.run_in_executor(_executor, process)
     except Exception as e:
-        return JSONResponse({"error": True, "content": str(e)})
+        return JSONResponse({"error": True, "content": str(e)}, status_code=500)
 
     stem = (midi_name or "output").rsplit(".", 1)[0]
     return Response(
@@ -634,7 +694,7 @@ if os.path.isdir(STATIC_DIR):
 if __name__ == "__main__":
     import uvicorn
 
-    ap = argparse.ArgumentParser(description="Tabify backend server")
+    ap = argparse.ArgumentParser(description="FretFlow backend server")
     ap.add_argument("--dev",  action="store_true", help="Dev mode: bypass auth, enable reload")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)

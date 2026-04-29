@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Navigation from './components/Navigation'
 import Login from './pages/Login'
-import Tabify from './pages/Tabify'
+import Fretflow from './pages/Fretflow'
 import Account from './pages/Account'
 import Me from './pages/Me'
 
@@ -18,7 +18,7 @@ export default function App() {
             <Navigation />
             <div className="content-root">
                 <Routes>
-                    <Route path="/"        element={<Tabify />} />
+                    <Route path="/"        element={<Fretflow />} />
                     <Route path="/account" element={<Account />} />
                     <Route path="/me"      element={<Me />} />
                     <Route path="*"        element={<Navigate to="/" replace />} />

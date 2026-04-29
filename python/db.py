@@ -75,7 +75,7 @@ async def get_user_by_email(email: str) -> dict | None:
     row = await pool.fetchrow(
         """
         SELECT id, email, name, picture, password_hash, plan,
-               conversions_used, conversions_reset_at, stripe_customer_id
+               conversions_used, conversions_reset_at, stripe_customer_id, email_verified
         FROM users WHERE email = $1
         """,
         email,
@@ -95,6 +95,27 @@ async def get_user_by_stripe_customer(customer_id: str) -> dict | None:
 # ---------------------------------------------------------------------------
 # Password auth
 # ---------------------------------------------------------------------------
+
+async def create_user_with_password(email: str, name: str, password_hash: str, verification_token: str) -> dict | None:
+    """
+    Insert a new user. Returns the row, or None if email already exists.
+    """
+    pool = await get_pool()
+    try:
+        row = await pool.fetchrow(
+            """
+            INSERT INTO users (email, name, password_hash,
+                               email_verified, email_verification_token, email_verification_sent_at,
+                               last_login_at)
+            VALUES ($1, $2, $3, FALSE, $4, now(), now())
+            RETURNING id, email, name, picture, plan, conversions_used
+            """,
+            email, name, password_hash, verification_token,
+        )
+        return dict(row)
+    except asyncpg.UniqueViolationError:
+        return None
+
 
 async def set_password_hash(email: str, password_hash: str):
     pool = await get_pool()
@@ -187,4 +208,40 @@ async def set_plan(email: str, plan: str):
     await pool.execute(
         "UPDATE users SET plan = $1 WHERE email = $2",
         plan, email,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Email verification
+# ---------------------------------------------------------------------------
+
+async def verify_email_token(token: str) -> dict | None:
+    """
+    Validate token (must be < 24h old), mark email as verified, clear token.
+    Returns the user row, or None if token is invalid/expired.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        UPDATE users
+        SET email_verified = TRUE,
+            email_verification_token = NULL
+        WHERE email_verification_token = $1
+          AND email_verification_sent_at > now() - interval '24 hours'
+        RETURNING id, email, name, picture, plan
+        """,
+        token,
+    )
+    return dict(row) if row else None
+
+
+async def set_verification_token(email: str, token: str):
+    pool = await get_pool()
+    await pool.execute(
+        """
+        UPDATE users
+        SET email_verification_token = $1, email_verification_sent_at = now()
+        WHERE email = $2
+        """,
+        token, email,
     )
