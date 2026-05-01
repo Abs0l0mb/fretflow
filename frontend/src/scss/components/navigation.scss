@@ -49,6 +49,28 @@
     }
 }
 
+.nav-lang {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 4px;
+}
+
+.nav-lang-btn {
+    padding: 4px 8px;
+    border-radius: $radius-sm;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-3;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 150ms, color 150ms;
+
+    &:hover { background: $surface-2; color: $text; }
+    &.active { color: $primary; background: $primary-light; }
+}
+
 .nav-user {
     position: relative;
     display: flex;
@@ -87,6 +109,13 @@
     padding: 4px;
     min-width: 160px;
     z-index: 200;
+    animation: dropdown-in 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: top right;
+}
+
+@keyframes dropdown-in {
+    from { opacity: 0; transform: scale(0.75) translateY(-16px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 
 .nav-dropdown-item {

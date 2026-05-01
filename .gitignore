@@ -18,4 +18,6 @@ yarn-error.log
 store
 tmp
 .vscode
-python/.env
+python/.envpython/deep_search.db
+python/deep_search.db-journal
+python/od_best_params.json

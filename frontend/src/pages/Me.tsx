@@ -1,4 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -15,22 +16,28 @@ interface Session {
 
 export default function Me() {
     const { logout } = useAuth()
+    const { t } = useTranslation()
     const [tab, setTab] = useState<Tab>('data')
     const [loggingOut, setLoggingOut] = useState(false)
+
+    const TAB_LABELS: Record<Tab, string> = {
+        data:     t('me.tab_data'),
+        sessions: t('me.tab_sessions'),
+    }
 
     return (
         <div className="page">
             <div className="page-header">
-                <h1 className="page-title">My account</h1>
+                <h1 className="page-title">{t('me.title')}</h1>
                 <button className="btn btn-danger" onClick={async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false) } }} disabled={loggingOut}>
-                    {loggingOut ? 'Logging out…' : 'Log out'}
+                    {loggingOut ? t('me.logging_out') : t('me.log_out')}
                 </button>
             </div>
 
             <div className="tab-bar">
                 {(['data', 'sessions'] as Tab[]).map(t => (
                     <button key={t} className={`tab-btn${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                        {TAB_LABELS[t]}
                     </button>
                 ))}
             </div>
@@ -42,12 +49,13 @@ export default function Me() {
 }
 
 function DataTab() {
+    const { t } = useTranslation()
     const [data, setData] = useState<MyData | null>(null)
     const [editing, setEditing] = useState(false)
 
     useEffect(() => { api.get('/me').then(setData).catch(() => {}) }, [])
 
-    if (!data) return <div className="card empty-state">Loading…</div>
+    if (!data) return <div className="card empty-state">{t('me.loading')}</div>
 
     return (
         <div className="card">
@@ -55,7 +63,7 @@ function DataTab() {
                 <table className="data-table">
                     <thead>
                         <tr>
-                            {['ID', 'Email', 'Last Name', 'First Name', 'Access Rights', ''].map(h => <th key={h}>{h}</th>)}
+                            {[t('me.col_id'), t('me.col_email'), t('me.col_last_name'), t('me.col_first_name'), t('me.col_access'), ''].map(h => <th key={h}>{h}</th>)}
                         </tr>
                     </thead>
                     <tbody>
@@ -66,7 +74,7 @@ function DataTab() {
                             <td>{data.first_name || '—'}</td>
                             <td>{data.access_right_names?.join(', ') || '—'}</td>
                             <td>
-                                <button className="btn btn-sm" onClick={() => setEditing(true)}>Edit</button>
+                                <button className="btn btn-sm" onClick={() => setEditing(true)}>{t('me.edit')}</button>
                             </td>
                         </tr>
                     </tbody>
@@ -87,6 +95,7 @@ function DataTab() {
 function EditModal({ initial, onClose, onSuccess }: {
     initial: MyData; onClose: () => void; onSuccess: (d: Partial<MyData>) => void
 }) {
+    const { t } = useTranslation()
     const [email, setEmail]         = useState(initial.email)
     const [lastName, setLastName]   = useState(initial.last_name || '')
     const [firstName, setFirstName] = useState(initial.first_name || '')
@@ -106,17 +115,19 @@ function EditModal({ initial, onClose, onSuccess }: {
         }
     }
 
+    const fields = [
+        { label: t('me.edit_email'),      value: email,     set: setEmail,     type: 'text' },
+        { label: t('me.edit_last_name'),  value: lastName,  set: setLastName,  type: 'text' },
+        { label: t('me.edit_first_name'), value: firstName, set: setFirstName, type: 'text' },
+        { label: t('me.edit_password'),   value: password,  set: setPassword,  type: 'password' },
+    ]
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={e => e.stopPropagation()}>
-                <h3 className="modal-title">Edit my data</h3>
+                <h3 className="modal-title">{t('me.edit_title')}</h3>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                        { label: 'Email',      value: email,     set: setEmail,     type: 'text' },
-                        { label: 'Last name',  value: lastName,  set: setLastName,  type: 'text' },
-                        { label: 'First name', value: firstName, set: setFirstName, type: 'text' },
-                        { label: 'Password',   value: password,  set: setPassword,  type: 'password' },
-                    ].map(({ label, value, set, type }) => (
+                    {fields.map(({ label, value, set, type }) => (
                         <div key={label} className="field">
                             <label className="field-label">{label}</label>
                             <input className="input" type={type} value={value} onChange={e => set(e.target.value)} />
@@ -124,9 +135,9 @@ function EditModal({ initial, onClose, onSuccess }: {
                     ))}
                     {error && <p className="input-error">{error}</p>}
                     <div className="modal-actions">
-                        <button type="button" className="btn" onClick={onClose}>Cancel</button>
+                        <button type="button" className="btn" onClick={onClose}>{t('me.cancel')}</button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? 'Updating…' : 'Update'}
+                            {loading ? t('me.updating') : t('me.update')}
                         </button>
                     </div>
                 </form>
@@ -136,11 +147,12 @@ function EditModal({ initial, onClose, onSuccess }: {
 }
 
 function SessionsTab() {
+    const { t } = useTranslation()
     const [sessions, setSessions] = useState<Session[]>([])
 
     useEffect(() => { api.get('/me/sessions').then(setSessions).catch(() => {}) }, [])
 
-    const fmt = (d?: string) => d ? new Date(d).toLocaleString('en-US') : '—'
+    const fmt = (d?: string) => d ? new Date(d).toLocaleString() : '—'
 
     const handleDelete = async (id: number) => {
         if (!confirm(`Delete session ${id}?`)) return
@@ -150,7 +162,7 @@ function SessionsTab() {
         } catch (e: any) { alert(e.message) }
     }
 
-    if (!sessions.length) return <div className="card empty-state">No sessions found.</div>
+    if (!sessions.length) return <div className="card empty-state">{t('me.no_sessions')}</div>
 
     return (
         <div className="card">
@@ -158,7 +170,7 @@ function SessionsTab() {
                 <table className="data-table">
                     <thead>
                         <tr>
-                            {['ID', 'Created', 'Updated', 'Last IP', 'Browser', 'OS', 'Device', ''].map(h => <th key={h}>{h}</th>)}
+                            {[t('me.col_id'), t('me.col_created'), t('me.col_updated'), t('me.col_last_ip'), t('me.col_browser'), t('me.col_os'), t('me.col_device'), ''].map(h => <th key={h}>{h}</th>)}
                         </tr>
                     </thead>
                     <tbody>
@@ -172,7 +184,7 @@ function SessionsTab() {
                                 <td>{[s.os_name, s.os_version].filter(Boolean).join(' ') || '—'}</td>
                                 <td>{s.device_type || '—'}</td>
                                 <td>
-                                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(s.id)}>Delete</button>
+                                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(s.id)}>{t('me.delete')}</button>
                                 </td>
                             </tr>
                         ))}

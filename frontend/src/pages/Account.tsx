@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Account() {
     const { user } = useAuth()
+    const { t } = useTranslation()
 
     return (
         <div className="page">
@@ -16,8 +18,8 @@ export default function Account() {
             </div>
 
             <div className="card account-sub-card">
-                <div className="section-title">Subscription</div>
-                <p className="account-sub-text">Free tier — subscription management coming soon.</p>
+                <div className="section-title">{t('account.subscription')}</div>
+                <p className="account-sub-text">{t('account.free_tier')}</p>
             </div>
         </div>
     )

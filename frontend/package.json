@@ -13,8 +13,10 @@
     "dependencies": {
         "@coderline/alphatab": "^1.8.1",
         "@types/node": "^18.15.10",
+        "i18next": "^26.0.8",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
+        "react-i18next": "^17.0.6",
         "react-router-dom": "^7.14.2",
         "typescript": "^5.0.4"
     },

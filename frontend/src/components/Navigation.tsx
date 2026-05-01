@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
+import i18n from '../i18n'
+
+const LANGS = [
+    { code: 'en', label: 'EN' },
+    { code: 'fr', label: 'FR' },
+]
 
 export default function Navigation() {
     const { user, logout } = useAuth()
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
     const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -18,17 +26,34 @@ export default function Navigation() {
         return () => document.removeEventListener('mousedown', handleClick)
     }, [])
 
+    const switchLang = (code: string) => {
+        i18n.changeLanguage(code)
+        localStorage.setItem('lang', code)
+    }
+
     return (
         <nav className="nav">
-            <span className="nav-logo" onClick={() => navigate('/')}>FretFlow</span>
+            <span className="nav-logo" onClick={() => navigate('/')}>{t('nav.logo')}</span>
 
             <div className="nav-links">
                 <button
                     className={`nav-link${location.pathname === '/' ? ' active' : ''}`}
                     onClick={() => navigate('/')}
                 >
-                    MIDI to tabs
+                    {t('nav.midi_to_tabs')}
                 </button>
+            </div>
+
+            <div className="nav-lang">
+                {LANGS.map(l => (
+                    <button
+                        key={l.code}
+                        className={`nav-lang-btn${i18n.language === l.code ? ' active' : ''}`}
+                        onClick={() => switchLang(l.code)}
+                    >
+                        {l.label}
+                    </button>
+                ))}
             </div>
 
             {user && (
@@ -41,10 +66,10 @@ export default function Navigation() {
                     {userMenuOpen && (
                         <div className="nav-dropdown">
                             <div className="nav-dropdown-item" onClick={() => { navigate('/account'); setUserMenuOpen(false) }}>
-                                My account
+                                {t('nav.my_account')}
                             </div>
                             <div className="nav-dropdown-item danger" onClick={() => { logout(); setUserMenuOpen(false) }}>
-                                Log out
+                                {t('nav.log_out')}
                             </div>
                         </div>
                     )}

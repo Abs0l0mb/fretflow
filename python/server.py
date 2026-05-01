@@ -543,6 +543,7 @@ async def convert(
     w_same_string_bonus:         Annotated[Optional[float], Form()] = None,
     string_jump_threshold:       Annotated[Optional[int],   Form()] = None,
     w_string_jump:               Annotated[Optional[float], Form()] = None,
+    tuning:                      Annotated[Optional[str],   Form()] = None,
 ):
     user = get_current_user(request)
     if user is None:
@@ -621,8 +622,15 @@ async def convert(
     gpq_   = gpq   or 960
     tempo_ = tempo or 120
 
+    parsed_tuning = None
+    if tuning:
+        try:
+            parsed_tuning = [int(x.strip()) for x in tuning.split(',') if x.strip()]
+        except ValueError:
+            return JSONResponse({"error": True, "content": "invalid-tuning"}, status_code=400)
+
     def process() -> bytes:
-        tuning = cfg.get("guitar", {}).get("tuning", E_STD_TUNING)
+        t = parsed_tuning or cfg.get("guitar", {}).get("tuning", E_STD_TUNING)
         with tempfile.TemporaryDirectory() as tmp:
             midi_path  = os.path.join(tmp, "input.mid")
             raw_jsonl  = os.path.join(tmp, "raw.jsonl")
@@ -651,7 +659,7 @@ async def convert(
                 tempo=tempo_,
                 time_sig=(4, 4),
                 quarter_ticks=gpq_,
-                tuning=tuning,
+                tuning=t,
             )
 
             with open(gp5_path, "rb") as f:
