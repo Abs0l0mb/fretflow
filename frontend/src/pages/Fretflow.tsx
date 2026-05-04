@@ -125,22 +125,27 @@ const PRESET_OVERRIDES: Record<PresetKey, Partial<Record<string, number>>> = {
         w_same_string_bonus: -0.5,
     },
     lead: {
-        // Optimised via ground-truth search on a tapping/legato/wide-stretch song (+19pp vs defaults)
-        allow_legato: 1,          allow_tapping: 1,
-        tap_min_fret: 4,          w_tap_activation: 0.76,
-        w_tap_deactivation: 2.0,  w_tap_jump: 1.34,
-        max_fret_distance: 7,     speed_threshold: 285,
-        w_span: 11.2,             w_high: 2.0,
-        w_string_range: 5.4,      w_preferred_zone: -0.5,
-        w_high_string: 6.3,
-        w_holes: 5.1,             w_gap: 0.6,   w_blocks: 0.8,
-        w_jump: 8.6,              jump_power: 1.28,
-        jump_threshold_penalty: 6.7,
-        w_avg_jump: 1.6,          w_string_center: 4.2,
-        close_jump_bonus: -4.3,   w_span_change: 1.6,
-        w_streak: 2.5,
-        w_same_string_bonus: -4.3, same_string_pitch_threshold: 2,
-        w_string_jump: 2.3,        string_jump_threshold: 2,
+        // Deep ground-truth search: 3000 TPE + 500 CMA-ES trials, beam=100 (65.5% exact string accuracy)
+        allow_legato: 1,              allow_tapping: 1,
+        tap_min_fret: 7,              w_tap_activation: 2.37,
+        w_tap_deactivation: 0.44,     w_tap_jump: 2.61,
+        max_fret_distance: 6.27,      speed_threshold: 666,
+        w_span: 17.76,                w_high: 6.74,
+        w_string_range: 3.28,         w_preferred_zone: -7.47,
+        w_high_string: 12.76,         w_open_bonus: 3.75,
+        high_fret_threshold: 13,      preferred_min_fret: 4,
+        preferred_max_fret: 13,       high_string_threshold: 1,
+        w_holes: 10.60,               w_gap: 2.83,    w_blocks: 12.37,
+        w_jump: 0.28,                 jump_power: 1.10,
+        jump_threshold: 3,            jump_threshold_penalty: 8.46,
+        w_avg_jump: 0.12,             avg_jump_power: 1.06,
+        w_string_center: 0.09,        close_jump_threshold: 5.92,
+        close_jump_bonus: -4.58,      w_span_change: 4.82,
+        w_streak: 4.60,               streak_min_len: 3,
+        streak_speed_threshold: 608,
+        rest_enter_penalty: 1.96,     rest_exit_penalty: 1.23,
+        w_same_string_bonus: -4.90,   same_string_pitch_threshold: 2,
+        w_string_jump: 10.05,         string_jump_threshold: 3,
     },
     acoustic: {
         max_fret: 15,
@@ -171,7 +176,8 @@ const PRESET_OVERRIDES: Record<PresetKey, Partial<Record<string, number>>> = {
 }
 
 function applyPreset(key: PresetKey): Record<string, number> {
-    return { ...buildDefaults(), ...PRESET_OVERRIDES[key] }
+    const merged = { ...buildDefaults(), ...PRESET_OVERRIDES[key] }
+    return Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== undefined)) as Record<string, number>
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -215,11 +221,11 @@ function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
             display: { scale: 1.0 },
         })
 
-        api.playerStateChanged.on((e: at.PlayerStateChangedEventArgs) => {
+        api.playerStateChanged.on((e: any) => {
             setPlaying(e.state === at.synth.PlayerState.Playing)
         })
         api.scoreLoaded.on(() => setStatus('ready'))
-        api.error.on((e: at.Error) => {
+        api.error.on((e: any) => {
             setStatus('error')
             setErrorMsg(e.message ?? String(e))
         })

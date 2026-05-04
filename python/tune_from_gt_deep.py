@@ -230,9 +230,13 @@ def run(midi_path: str, gp5_path: str, base_cfg_path: str,
         except Exception:
             return 0.0
 
+    def cb(study, trial):
+        if trial.number % 100 == 0:
+            print(f"  [{trial.number}/{n_phase1}] best={study.best_value:.4f}", flush=True)
+
     print(f"\nPhase 1 — TPE multivariate, beam={beam1}, {n_phase1} trials…")
     t0 = time.time()
-    study1.optimize(obj1, n_trials=n_phase1, show_progress_bar=True)
+    study1.optimize(obj1, n_trials=n_phase1, show_progress_bar=False, callbacks=[cb])
     print(f"  Done in {time.time()-t0:.0f}s  |  best: {study1.best_value:.4f}  ({study1.best_value:.2%})")
 
     best1 = study1.best_trial.params.copy()
@@ -274,7 +278,7 @@ def run(midi_path: str, gp5_path: str, base_cfg_path: str,
 
     print(f"\nPhase 2 — CMA-ES, beam={beam2}, {n_phase2} trials…")
     t0 = time.time()
-    study2.optimize(obj2, n_trials=n_phase2, show_progress_bar=True)
+    study2.optimize(obj2, n_trials=n_phase2, show_progress_bar=False)
     print(f"  Done in {time.time()-t0:.0f}s  |  best: {study2.best_value:.4f}  ({study2.best_value:.2%})")
 
     # Merge: take Phase 2 continuous params + Phase 1 integer params
@@ -283,7 +287,7 @@ def run(midi_path: str, gp5_path: str, base_cfg_path: str,
         best2[k] = best1.get(k, INT_PARAMS[k][0])
     best2.update(FIXED)
 
-    _finish(best2, base_cfg, events, aligned, baseline, db_path, verbose)
+    _finish(best2, base_cfg, events, aligned, baseline, verbose)
 
 
 def _finish(best_params: Dict, base_cfg: Dict, events, aligned, baseline, verbose):
@@ -300,12 +304,12 @@ def _finish(best_params: Dict, base_cfg: Dict, events, aligned, baseline, verbos
                 for pp, ps in zip(preds_final[ev_idx].pitches, preds_final[ev_idx].strings))
     ) / max(len(aligned), 1)
 
-    print(f"\n{'='*55}")
+    print(f"\n{'---'*18}")
     print(f"  Baseline   : {baseline:.2%}  (weighted)")
     print(f"  Optimised  : {final_score:.2%}  (weighted, beam=100)")
     print(f"  Exact str  : {exact:.2%}")
     print(f"  Gain       : +{(final_score-baseline)*100:.1f}pp over {len(aligned)} notes")
-    print(f"{'='*55}\n")
+    print(f"{'---'*18}\n")
 
     out_path = "deep_best_params.json"
     with open(out_path, "w") as f:
@@ -313,7 +317,7 @@ def _finish(best_params: Dict, base_cfg: Dict, events, aligned, baseline, verbos
     print(f"Best params saved to {out_path}")
 
     if verbose:
-        print("\n── Best params ──────────────────────────────────────────")
+        print("\n-- Best params --")
         print(json.dumps(best_params, indent=2))
 
 
