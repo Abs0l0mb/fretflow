@@ -1,0 +1,27 @@
+# FretFlow backend dependencies
+# Install with: pip install -r requirements.txt
+
+# Web server
+fastapi
+uvicorn[standard]
+
+# Auth
+authlib
+httpx
+itsdangerous
+bcrypt
+python-dotenv
+
+# Database
+asyncpg
+
+# MIDI / Guitar Pro
+mido
+MIDIUtil
+PyGuitarPro
+
+# Viterbi / parameter tuning
+commentjson
+numpy
+optuna
+cmaes
