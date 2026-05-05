@@ -93,6 +93,8 @@
     "suggest_params": "Suggest parameters",
     "suggesting": "Suggesting…",
     "generate": "Generate tablature",
+    "view_last_tab": "View last tab",
+    "no_changes": "Parameters unchanged — result would be identical",
     "generating": "Generating…",
     "no_file_error": "Please select a MIDI file.",
     "play": "▶ Play",

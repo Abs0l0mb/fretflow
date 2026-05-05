@@ -376,6 +376,10 @@ export default function Fretflow() {
     const [activePreset, setActivePreset] = useState<PresetKey | 'custom'>('default')
     const [tuning, setTuning] = useState<number[]>(DEFAULT_TUNING)
     const [tuningKey, setTuningKey] = useState<string>('e_std')
+
+    // Cache: last generated result + the state that produced it
+    const [cached, setCached] = useState<{ buffer: ArrayBuffer; name: string } | null>(null)
+    const [lastUsed, setLastUsed] = useState<{ values: string; tuning: string; fileName: string } | null>(null)
     const [suggesting, setSuggesting] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
@@ -414,6 +418,17 @@ export default function Fretflow() {
         }
     }
 
+    const currentSnapshot = () => ({
+        values:   JSON.stringify(values),
+        tuning:   tuning.join(','),
+        fileName: file?.name ?? '',
+    })
+
+    const hasChanges = !cached || !lastUsed
+        || lastUsed.values   !== JSON.stringify(values)
+        || lastUsed.tuning   !== tuning.join(',')
+        || lastUsed.fileName !== (file?.name ?? '')
+
     const handleSubmit = async () => {
         const parts = await getFileParts()
         if (!parts) { setError(t('fretflow.no_file_error')); return }
@@ -422,7 +437,10 @@ export default function Fretflow() {
             const params = new URLSearchParams({ midi_base64: parts.base64, midi_name: parts.name, tuning: tuning.join(',') })
             Object.entries(values).forEach(([k, v]) => params.append(k, String(v)))
             const buffer: ArrayBuffer = await api.request('POST', '/convert', params, true)
-            setGp5Name(parts.name.replace(/\.midi?$/i, '.gp5'))
+            const name = parts.name.replace(/\.midi?$/i, '.gp5')
+            setCached({ buffer, name })
+            setLastUsed(currentSnapshot())
+            setGp5Name(name)
             setGp5Buffer(buffer)
         } catch (e: any) {
             setError(e.message)
@@ -510,11 +528,21 @@ export default function Fretflow() {
 
             <div className="submit-row">
                 {error && <span className="input-error">{error}</span>}
+                {cached && (
+                    <button
+                        className="btn"
+                        onClick={() => setGp5Buffer(cached.buffer)}
+                        style={{ marginLeft: error ? 0 : 'auto' }}
+                    >
+                        {t('fretflow.view_last_tab')}
+                    </button>
+                )}
                 <button
                     className="btn btn-primary"
                     onClick={handleSubmit}
-                    disabled={submitting || !file}
-                    style={{ marginLeft: error ? 0 : 'auto' }}
+                    disabled={submitting || !file || (!hasChanges && !!cached)}
+                    style={{ marginLeft: cached || error ? 0 : 'auto' }}
+                    title={!hasChanges && cached ? t('fretflow.no_changes') : undefined}
                 >
                     {submitting && <span className="btn-spinner btn-spinner-white" />}
                     {submitting ? t('fretflow.generating') : t('fretflow.generate')}
