@@ -17,7 +17,9 @@ yarn.lock
 yarn-error.log
 store
 tmp
+.env
 .vscode
-python/.envpython/deep_search.db
+python/.env
+python/deep_search.db
 python/deep_search.db-journal
 python/od_best_params.json
