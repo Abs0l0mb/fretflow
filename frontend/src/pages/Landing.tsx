@@ -29,7 +29,7 @@ export default function Landing() {
     const [showLogin, setShowLogin] = useState(false)
 
     if (user) return <Navigate to="/app" replace />
-    if (showLogin) return <Login />
+    if (showLogin) return <Login onBack={() => setShowLogin(false)} />
 
     return (
         <div className="landing">

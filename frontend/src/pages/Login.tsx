@@ -13,7 +13,7 @@ const ERROR_KEY_MAP: Record<string, string> = {
     'missing-fields':           'login.error_missing_fields',
 }
 
-export default function Login() {
+export default function Login({ onBack }: { onBack?: () => void } = {}) {
     const { t } = useTranslation()
     const { checkAuth } = useAuth()
     const [mode, setMode] = useState<Mode>('signin')
@@ -119,6 +119,12 @@ export default function Login() {
                         <>{t('login.have_account')} <button className="link-btn" onClick={() => switchMode('signin')}>{t('login.sign_in')}</button></>
                     )}
                 </div>
+
+                {onBack && (
+                    <button className="link-btn" style={{ marginTop: 4 }} onClick={onBack}>
+                        ← Back to home
+                    </button>
+                )}
             </div>
         </div>
     )
