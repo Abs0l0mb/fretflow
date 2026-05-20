@@ -189,7 +189,7 @@ async def auth_callback(code: str, request: Request):
     }
 
     cookie = make_session_cookie(user)
-    response = RedirectResponse("/")
+    response = RedirectResponse("/app")
     response.set_cookie(
         SESSION_COOKIE,
         cookie,
@@ -300,7 +300,7 @@ async def auth_verify_email(token: str):
 
     user = {"email": row["email"], "name": row["name"] or row["email"], "picture": row.get("picture") or ""}
     cookie = make_session_cookie(user)
-    response = RedirectResponse("/")
+    response = RedirectResponse("/app")
     response.set_cookie(
         SESSION_COOKIE, cookie,
         max_age=SESSION_MAX_AGE, httponly=True, samesite="lax",

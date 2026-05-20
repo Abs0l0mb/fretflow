@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import Login from './Login'
 
 const FEATURES = [
@@ -23,8 +25,10 @@ const FEATURES = [
 ]
 
 export default function Landing() {
+    const { user } = useAuth()
     const [showLogin, setShowLogin] = useState(false)
 
+    if (user) return <Navigate to="/app" replace />
     if (showLogin) return <Login />
 
     return (

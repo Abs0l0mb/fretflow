@@ -37,8 +37,8 @@ export default function Navigation() {
 
             <div className="nav-links">
                 <button
-                    className={`nav-link${location.pathname === '/' ? ' active' : ''}`}
-                    onClick={() => navigate('/')}
+                    className={`nav-link${location.pathname === '/app' ? ' active' : ''}`}
+                    onClick={() => navigate('/app')}
                 >
                     {t('nav.midi_to_tabs')}
                 </button>
@@ -68,7 +68,7 @@ export default function Navigation() {
                             <div className="nav-dropdown-item" onClick={() => { navigate('/account'); setUserMenuOpen(false) }}>
                                 {t('nav.my_account')}
                             </div>
-                            <div className="nav-dropdown-item danger" onClick={() => { logout(); setUserMenuOpen(false) }}>
+                            <div className="nav-dropdown-item danger" onClick={() => { logout(); navigate('/'); setUserMenuOpen(false) }}>
                                 {t('nav.log_out')}
                             </div>
                         </div>
