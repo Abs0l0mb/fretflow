@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import * as at from '@coderline/alphatab'
 import { api } from '../api'
 
+const PLAYER_ENABLED = false
+
 // ── Tuning ─────────────────────────────────────────────────────────
 
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
@@ -206,37 +208,21 @@ function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
     const [playing, setPlaying] = useState(false)
 
     useEffect(() => {
-        if (!containerRef.current) return
+        if (!PLAYER_ENABLED || !containerRef.current) return
 
         const api = new at.AlphaTabApi(containerRef.current, {
-            core: {
-                fontDirectory: '/font/',
-                scriptFile: '/alphaTab.min.js',
-            },
-            player: {
-                enablePlayer: true,
-                enableCursor: true,
-                soundFont: '/soundfont/sonivox.sf2',
-            },
+            core: { fontDirectory: '/font/', scriptFile: '/alphaTab.min.js' },
+            player: { enablePlayer: true, enableCursor: true, soundFont: '/soundfont/sonivox.sf2' },
             display: { scale: 1.0 },
         })
 
-        api.playerStateChanged.on((e: any) => {
-            setPlaying(e.state === at.synth.PlayerState.Playing)
-        })
+        api.playerStateChanged.on((e: any) => setPlaying(e.state === at.synth.PlayerState.Playing))
         api.scoreLoaded.on(() => setStatus('ready'))
-        api.error.on((e: any) => {
-            setStatus('error')
-            setErrorMsg(e.message ?? String(e))
-        })
-
+        api.error.on((e: any) => { setStatus('error'); setErrorMsg(e.message ?? String(e)) })
         api.load(new Uint8Array(gp5Buffer))
         apiRef.current = api
 
-        return () => {
-            api.destroy()
-            apiRef.current = null
-        }
+        return () => { api.destroy(); apiRef.current = null }
     }, [gp5Buffer])
 
     useEffect(() => {
@@ -256,20 +242,14 @@ function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
             <div className="player-modal" onClick={e => e.stopPropagation()}>
                 <div className="player-modal-header">
                     <div className="player-controls">
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => apiRef.current?.playPause()}
-                            disabled={status !== 'ready'}
-                        >
-                            {playing ? t('fretflow.pause') : t('fretflow.play')}
-                        </button>
-                        <button
-                            className="btn"
-                            onClick={() => apiRef.current?.stop()}
-                            disabled={status !== 'ready'}
-                        >
-                            {t('fretflow.stop')}
-                        </button>
+                        {PLAYER_ENABLED && <>
+                            <button className="btn btn-primary" onClick={() => apiRef.current?.playPause()} disabled={status !== 'ready'}>
+                                {playing ? t('fretflow.pause') : t('fretflow.play')}
+                            </button>
+                            <button className="btn" onClick={() => apiRef.current?.stop()} disabled={status !== 'ready'}>
+                                {t('fretflow.stop')}
+                            </button>
+                        </>}
                         <button className="btn" onClick={handleDownload}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -278,20 +258,24 @@ function AlphaTabModal({ gp5Buffer, fileName, onClose }: AlphaTabModalProps) {
                             </svg>
                             {t('fretflow.download')}
                         </button>
-                        {status === 'loading' && (
+                        {PLAYER_ENABLED && status === 'loading' && (
                             <span className="player-status">
                                 <span className="btn-spinner" style={{ display: 'inline-block' }} /> {t('fretflow.loading_score')}
                             </span>
                         )}
-                        {status === 'error' && (
-                            <span className="player-status player-status-error">
-                                Error: {errorMsg}
-                            </span>
+                        {PLAYER_ENABLED && status === 'error' && (
+                            <span className="player-status player-status-error">Error: {errorMsg}</span>
                         )}
                     </div>
                     <button className="btn player-modal-close" onClick={onClose} title="Close (Esc)">✕</button>
                 </div>
-                <div ref={containerRef} className="alphatab-container" />
+                {PLAYER_ENABLED
+                    ? <div ref={containerRef} className="alphatab-container" />
+                    : <div className="alphatab-container player-coming-soon">
+                        <p>Tab player coming in a future update.</p>
+                        <p className="player-coming-soon-sub">The library costs €500 — if you'd like to help make it happen, consider supporting the project! In the meantime, download your tab with the button above and open it in Guitar Pro or TuxGuitar.</p>
+                    </div>
+                }
             </div>
         </div>
     )
