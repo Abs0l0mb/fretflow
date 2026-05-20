@@ -47,3 +47,19 @@ def send_verification_email(to_email: str, verification_link: str):
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.sendmail(SMTP_FROM, to_email, msg.as_string())
+
+
+def send_access_request_email(requester_email: str, admin_email: str):
+    if not SMTP_HOST or not SMTP_USER:
+        raise RuntimeError("SMTP not configured")
+
+    msg = MIMEText(f"{requester_email} is requesting unlimited access on FretFlow.")
+    msg["Subject"] = f"[FretFlow] Access request from {requester_email}"
+    msg["From"]    = SMTP_FROM
+    msg["To"]      = admin_email
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, admin_email, msg.as_string())

@@ -55,7 +55,7 @@ from db import (
     create_user_with_password, check_and_increment_usage, close_pool,
     verify_email_token, set_verification_token, FREE_CONVERSIONS_PER_MONTH,
 )
-from email_utils import send_verification_email
+from email_utils import send_verification_email, send_access_request_email
 from midi_to_jsonl import midi_to_jsonl_active_compressed
 from viterbi_predict import load_config, load_events_from_jsonl, viterbi_decode, save_predicted_jsonl
 from jsonl_to_tab import load_pred_events, build_gp5_from_pred_rows, E_STD_TUNING
@@ -79,8 +79,9 @@ SECRET_KEY      = os.environ.get("SECRET_KEY", "change-me-in-production")
 GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 APP_BASE_URL    = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
-ALLOWED_EMAILS  = {e.strip() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
-DEV_MODE        = os.environ.get("DEV_MODE", "").lower() in ("1", "true", "yes")
+ALLOWED_EMAILS   = {e.strip() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
+UNLIMITED_EMAILS = {e.strip() for e in os.environ.get("UNLIMITED_EMAILS", "").split(",") if e.strip()}
+DEV_MODE         = os.environ.get("DEV_MODE", "").lower() in ("1", "true", "yes")
 ADMIN_EMAIL     = os.environ.get("ADMIN_EMAIL", "")
 ADMIN_PASSWORD  = os.environ.get("ADMIN_PASSWORD", "")
 
@@ -306,6 +307,23 @@ async def auth_verify_email(token: str):
         secure=APP_BASE_URL.startswith("https"),
     )
     return response
+
+
+# ---------------------------------------------------------------------------
+# /api/request-access
+# ---------------------------------------------------------------------------
+
+@app.post("/api/request-access")
+async def request_access(request: Request):
+    user = get_current_user(request)
+    if user is None:
+        return JSONResponse({"error": True, "content": "not-connected"}, status_code=401)
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, send_access_request_email, user["email"], "ant1lareunion@gmail.com")
+    except Exception as e:
+        return JSONResponse({"error": True, "content": str(e)}, status_code=500)
+    return JSONResponse({"error": False, "content": None})
 
 
 # ---------------------------------------------------------------------------
@@ -555,7 +573,7 @@ async def convert(
         return JSONResponse({"error": True, "content": "not-connected"}, status_code=401)
 
     # ── Paywall check ─────────────────────────────────────────────────────
-    if DATABASE_URL and not DEV_MODE:
+    if DATABASE_URL and not DEV_MODE and user["email"] not in UNLIMITED_EMAILS:
         allowed, used, limit = await check_and_increment_usage(user["email"])
         if not allowed:
             return JSONResponse({

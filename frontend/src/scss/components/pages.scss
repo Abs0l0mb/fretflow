@@ -228,6 +228,80 @@
     padding: 0 4px;
 }
 
+// ── Paywall modal ──────────────────────────────────────────────────
+
+.paywall-modal {
+    background: $surface;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-lg;
+    padding: 32px;
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.paywall-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+.paywall-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.paywall-sub {
+    font-size: 13px;
+    color: $text-2;
+    margin: 0;
+}
+
+.paywall-plan {
+    margin-top: 8px;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.paywall-plan-price {
+    font-size: 32px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    s { color: $text-3; }
+    span { font-size: 14px; font-weight: 400; color: $text-2; }
+    .paywall-plan-free { font-size: 14px; font-weight: 500; color: $primary; }
+}
+
+.paywall-plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: $text-2;
+
+    li::before { content: '✓  '; color: $primary; font-weight: 600; }
+}
+
+.paywall-subscribe-btn { width: 100%; justify-content: center; }
+.paywall-sent { font-size: 13px; color: $primary; margin: 0; }
+
 // ── AlphaTab player modal ──────────────────────────────────────────
 
 .player-modal-overlay {

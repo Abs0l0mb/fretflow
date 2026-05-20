@@ -191,6 +191,60 @@ function fileToBase64(file: File): Promise<string> {
     })
 }
 
+// ── Paywall modal ──────────────────────────────────────────────────
+
+function PaywallModal({ onClose }: { onClose: () => void }) {
+    const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [onClose])
+
+    const handleRequest = async () => {
+        setStatus('sending')
+        try {
+            await api.post('/request-access')
+            setStatus('sent')
+        } catch {
+            setStatus('error')
+        }
+    }
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="paywall-modal" onClick={e => e.stopPropagation()}>
+                <button className="btn paywall-modal-close" onClick={onClose}>✕</button>
+                <h2 className="paywall-title">You've used all your free conversions</h2>
+                <p className="paywall-sub">A subscription plan is coming soon at €2.99/month. In the meantime, request free access below.</p>
+                <div className="paywall-plan">
+                    <div className="paywall-plan-price">
+                        <s>€2.99<span>/month</span></s>
+                        <span className="paywall-plan-free">free under my approval :)</span>
+                    </div>
+                    <ul className="paywall-plan-features">
+                        <li>Unlimited conversions</li>
+                        <li>All presets & tunings</li>
+                        <li>Priority support</li>
+                    </ul>
+                    {status === 'sent'
+                        ? <p className="paywall-sent">Request sent! You'll be granted access shortly.</p>
+                        : <button
+                            className="btn btn-primary paywall-subscribe-btn"
+                            onClick={handleRequest}
+                            disabled={status === 'sending'}
+                          >
+                            {status === 'sending' && <span className="btn-spinner btn-spinner-white" />}
+                            {status === 'error' ? 'Failed — try again' : 'Request unlimited access'}
+                          </button>
+                    }
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ── AlphaTab modal ─────────────────────────────────────────────────
 
 interface AlphaTabModalProps {
@@ -369,6 +423,7 @@ export default function Fretflow() {
     const [error, setError] = useState('')
     const [gp5Buffer, setGp5Buffer] = useState<ArrayBuffer | null>(null)
     const [gp5Name, setGp5Name] = useState('')
+    const [showPaywall, setShowPaywall] = useState(false)
 
     const setParam = useCallback((key: string, value: number) => {
         setActivePreset('custom')
@@ -427,7 +482,8 @@ export default function Fretflow() {
             setGp5Name(name)
             setGp5Buffer(buffer)
         } catch (e: any) {
-            setError(e.message)
+            if (e.message === 'usage-limit-reached') setShowPaywall(true)
+            else setError(e.message)
         } finally {
             setSubmitting(false)
         }
@@ -455,16 +511,12 @@ export default function Fretflow() {
                     <input type="file" accept=".mid,.midi" onChange={e => setFile(e.target.files?.[0] ?? null)} style={{ display: 'none' }} />
                 </label>
                 {file && <span className="file-name">{file.name}</span>}
-                <button className="btn" onClick={handleSuggest} disabled={suggesting || !file} style={{ marginLeft: 'auto' }}>
-                    {suggesting && <span className="btn-spinner" />}
-                    {suggesting ? t('fretflow.suggesting') : t('fretflow.suggest_params')}
-                </button>
             </div>
 
             <TuningSelector
                 tuning={tuning}
                 tuningKey={tuningKey}
-                onChange={(key, pitches) => { setTuningKey(key); setTuning(pitches) }}
+                onChange={(key, pitches) => { if (key === 'custom') { setShowPaywall(true) } else { setTuningKey(key); setTuning(pitches) } }}
             />
 
             <div className="card preset-bar">
@@ -482,13 +534,23 @@ export default function Fretflow() {
                     ))}
                     <button
                         className={`preset-btn${activePreset === 'custom' ? ' active' : ''}`}
-                        onClick={() => setActivePreset('custom')}
+                        onClick={() => setShowPaywall(true)}
                     >
                         <span className="preset-icon">⚙️</span>
                         {t('fretflow.preset_custom')}
                     </button>
                 </div>
             </div>
+
+            {activePreset === 'custom' && (
+                <div className="card param-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{t('fretflow.suggest_params_hint')}</span>
+                    <button className="btn" onClick={handleSuggest} disabled={suggesting || !file}>
+                        {suggesting && <span className="btn-spinner" />}
+                        {suggesting ? t('fretflow.suggesting') : t('fretflow.suggest_params')}
+                    </button>
+                </div>
+            )}
 
             {activePreset === 'custom' && PARAM_GROUPS.map(group => (
                 <div key={group.titleKey} className="card param-group">
@@ -541,6 +603,8 @@ export default function Fretflow() {
                     onClose={() => setGp5Buffer(null)}
                 />
             )}
+
+            {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} />}
         </div>
     )
 }

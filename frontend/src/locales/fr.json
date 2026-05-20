@@ -91,6 +91,7 @@
     "preset_blues": "Blues",
     "choose_file": "Choisir un fichier MIDI",
     "suggest_params": "Suggérer les paramètres",
+    "suggest_params_hint": "Ajuster automatiquement les paramètres pour votre fichier MIDI",
     "suggesting": "Suggestion en cours…",
     "generate": "Générer la tablature",
     "view_last_tab": "Voir la dernière tablature",

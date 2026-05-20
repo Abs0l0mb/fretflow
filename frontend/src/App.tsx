@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Navigation from './components/Navigation'
-import Login from './pages/Login'
+import Landing from './pages/Landing'
 import Fretflow from './pages/Fretflow'
 import Account from './pages/Account'
 import Me from './pages/Me'
@@ -12,7 +12,7 @@ export default function App() {
 
     if (loading) return <div className="app-loading" />
 
-    if (!user) return <Login />
+    if (!user) return <Landing />
 
     return (
         <div id="app">
