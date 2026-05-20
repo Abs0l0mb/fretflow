@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try { await api.post('/auth/logout') } catch {}
-        await checkAuth()
+        setUser(null)
     }
 
     useEffect(() => { checkAuth() }, [])

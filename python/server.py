@@ -203,7 +203,12 @@ async def auth_callback(code: str, request: Request):
 @app.post("/api/auth/logout")
 async def auth_logout():
     response = JSONResponse({"error": False, "content": None})
-    response.delete_cookie(SESSION_COOKIE)
+    response.delete_cookie(
+        SESSION_COOKIE,
+        httponly=True,
+        samesite="lax",
+        secure=APP_BASE_URL.startswith("https"),
+    )
     return response
 
 
